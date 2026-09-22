@@ -17,7 +17,8 @@ from backend.api import (
     tasks,
     migration,
     reports,
-    search
+    search,
+    codegen
 )
 from backend.utils.logger import logger
 
@@ -47,6 +48,7 @@ app.include_router(tasks.router)
 app.include_router(migration.router)
 app.include_router(reports.router)
 app.include_router(search.router)
+app.include_router(codegen.router)
 
 @app.on_event("startup")
 def on_startup():

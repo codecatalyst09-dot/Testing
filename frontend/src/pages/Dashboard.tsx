@@ -22,6 +22,12 @@ import {
   Bot,
   Network,
   ArrowRight,
+  Code2,
+  Copy,
+  Check,
+  FileCode,
+  Terminal,
+  X,
 } from 'lucide-react';
 
 interface CombinedStep {
@@ -54,6 +60,44 @@ export const Dashboard: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'DISABLED'>('ALL');
   const [platformFilter, setPlatformFilter] = useState<string>('ALL');
   const [taskFilter, setTaskFilter] = useState<string>('ALL');
+
+  // Code Generation Modal States
+  const [showCodeModal, setShowCodeModal] = useState<boolean>(false);
+  const [codeLoading, setCodeLoading] = useState<boolean>(false);
+  const [generatedCode, setGeneratedCode] = useState<any>(null);
+  const [activeCodeTab, setActiveCodeTab] = useState<'pad' | 'cloud' | 'ps1'>('pad');
+  const [copied, setCopied] = useState<boolean>(false);
+
+  const handleOpenCodeModal = async () => {
+    if (!currentJobId) return;
+    setShowCodeModal(true);
+    if (!generatedCode) {
+      setCodeLoading(true);
+      try {
+        const data = await api.getGeneratedCode(currentJobId);
+        setGeneratedCode(data);
+      } catch (err: any) {
+        console.error('Failed to generate code:', err);
+      } finally {
+        setCodeLoading(false);
+      }
+    }
+  };
+
+  const handleCopyCode = () => {
+    if (!generatedCode) return;
+    let textToCopy = '';
+    if (activeCodeTab === 'pad') {
+      textToCopy = generatedCode.pad_script || '';
+    } else if (activeCodeTab === 'cloud') {
+      textToCopy = JSON.stringify(generatedCode.cloud_flow_json, null, 2);
+    } else {
+      textToCopy = generatedCode.powershell_script || '';
+    }
+    navigator.clipboard.writeText(textToCopy);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   useEffect(() => {
     if (!currentJobId) return;
@@ -301,15 +345,25 @@ export const Dashboard: React.FC = () => {
           </p>
         </div>
 
-        {/* Primary Download Action */}
+        {/* Primary Code Generation & Download Actions */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <button
+            onClick={handleOpenCodeModal}
+            className="flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl bg-gradient-to-r from-violet-600 via-indigo-600 to-primary-600 hover:from-violet-500 hover:via-indigo-500 hover:to-primary-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition-all border border-indigo-400/40 hover:scale-[1.02] active:scale-[0.98] group"
+          >
+            <Code2 className="w-4 h-4 text-violet-200 group-hover:rotate-12 transition-transform" />
+            <span>Generate Code</span>
+            <span className="px-1.5 py-0.5 rounded text-[10px] bg-white/20 text-white uppercase font-extrabold tracking-wider">
+              PAD & Cloud
+            </span>
+          </button>
           <a
             href={api.getDownloadExcelUrl(currentJobId)}
             download="AA_to_PowerAutomate_Migration_Plan.xlsx"
-            className="flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 transition-all border border-emerald-400/30 hover:scale-[1.02] active:scale-[0.98]"
+            className="flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 transition-all border border-emerald-400/30 hover:scale-[1.02] active:scale-[0.98]"
           >
             <FileSpreadsheet className="w-4 h-4" />
-            <span>Download Migration Excel (.xlsx)</span>
+            <span>Download Excel</span>
           </a>
           <a
             href={api.getDownloadBundleUrl(currentJobId)}
@@ -713,6 +767,184 @@ export const Dashboard: React.FC = () => {
           </a>
         </div>
       </div>
+
+      {/* 4. Code Generation Modal */}
+      {showCodeModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-fadeIn">
+          <div className="bg-slate-900 border border-slate-750 rounded-2xl w-full max-w-5xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-850">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-violet-500/15 border border-violet-500/30 text-violet-400">
+                  <Code2 className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white flex items-center gap-2.5">
+                    Power Automate Code Generator
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-500/20 text-violet-300 border border-violet-500/30">
+                      Deterministic / No-LLM
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Target code blueprints for {workflow.workflow.name} ({workflow.statistics.totalActions} steps)
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <a
+                  href={api.getDownloadCodeUrl(currentJobId, 'all')}
+                  className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold shadow-md shadow-violet-600/20 transition-all"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Download Code Bundle (.zip)</span>
+                </a>
+                <button
+                  onClick={() => setShowCodeModal(false)}
+                  className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Navigation Tabs */}
+            <div className="flex items-center gap-2 px-6 pt-4 bg-slate-900 border-b border-slate-800 text-xs font-semibold">
+              <button
+                onClick={() => setActiveCodeTab('pad')}
+                className={`flex items-center gap-2 px-4 py-2.5 border-b-2 transition-all ${
+                  activeCodeTab === 'pad'
+                    ? 'border-violet-500 text-violet-400 font-bold'
+                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Monitor className="w-4 h-4" />
+                <span>Desktop Flow Script (.pad)</span>
+                {generatedCode?.summary?.pad_lines && (
+                  <span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300">
+                    {generatedCode.summary.pad_lines} lines
+                  </span>
+                )}
+              </button>
+
+              <button
+                onClick={() => setActiveCodeTab('cloud')}
+                className={`flex items-center gap-2 px-4 py-2.5 border-b-2 transition-all ${
+                  activeCodeTab === 'cloud'
+                    ? 'border-sky-500 text-sky-400 font-bold'
+                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Cloud className="w-4 h-4" />
+                <span>Cloud Flow Definition (.json)</span>
+                {generatedCode?.summary?.cloud_actions_count && (
+                  <span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300">
+                    {generatedCode.summary.cloud_actions_count} actions
+                  </span>
+                )}
+              </button>
+
+              <button
+                onClick={() => setActiveCodeTab('ps1')}
+                className={`flex items-center gap-2 px-4 py-2.5 border-b-2 transition-all ${
+                  activeCodeTab === 'ps1'
+                    ? 'border-emerald-500 text-emerald-400 font-bold'
+                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Terminal className="w-4 h-4" />
+                <span>PowerShell Deployment (.ps1)</span>
+                <span className="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300">
+                  CLI
+                </span>
+              </button>
+            </div>
+
+            {/* Code Body */}
+            <div className="flex-1 overflow-hidden flex flex-col p-5 bg-slate-950">
+              {/* Code Toolbar */}
+              <div className="flex items-center justify-between pb-3 text-xs text-slate-400 border-b border-slate-800/80 mb-3">
+                <div className="flex items-center gap-2 font-mono text-[11px] text-slate-300">
+                  <FileCode className="w-3.5 h-3.5 text-violet-400" />
+                  <span>
+                    {activeCodeTab === 'pad'
+                      ? `${workflow.workflow.name.replace(/ /g, '_')}_Desktop.pad`
+                      : activeCodeTab === 'cloud'
+                      ? `${workflow.workflow.name.replace(/ /g, '_')}_CloudFlow.json`
+                      : `Deploy_${workflow.workflow.name.replace(/ /g, '_')}.ps1`}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleCopyCode}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-semibold border border-slate-700 transition-all hover:scale-105 active:scale-95"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span className="text-emerald-400 font-bold">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Copy Code</span>
+                      </>
+                    )}
+                  </button>
+
+                  <a
+                    href={api.getDownloadCodeUrl(currentJobId, activeCodeTab)}
+                    download
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-semibold border border-slate-700 transition-all hover:scale-105 active:scale-95"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download File</span>
+                  </a>
+                </div>
+              </div>
+
+              {/* Code Pre Container */}
+              <div className="flex-1 overflow-auto rounded-xl bg-slate-900/90 border border-slate-800 p-4 text-xs font-mono text-slate-200 leading-relaxed selection:bg-violet-500/30 selection:text-white">
+                {codeLoading ? (
+                  <div className="p-12 text-center text-slate-400 flex flex-col items-center gap-3">
+                    <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+                    <span>Generating native Power Automate code blueprints...</span>
+                  </div>
+                ) : (
+                  <pre className="whitespace-pre">
+                    {activeCodeTab === 'pad'
+                      ? generatedCode?.pad_script || '# No desktop flow script generated.'
+                      : activeCodeTab === 'cloud'
+                      ? JSON.stringify(generatedCode?.cloud_flow_json, null, 2)
+                      : generatedCode?.powershell_script || '# No deployment script generated.'}
+                  </pre>
+                )}
+              </div>
+
+              {/* Pro-Tips Footer Bar */}
+              <div className="mt-3 p-3 rounded-xl bg-violet-950/30 border border-violet-500/20 flex flex-wrap items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-2 text-violet-300">
+                  <Sparkles className="w-4 h-4 text-violet-400 shrink-0" />
+                  <span>
+                    {activeCodeTab === 'pad'
+                      ? 'Pro-Tip: In Power Automate Desktop designer, press Ctrl+A then Ctrl+V to paste this entire script directly into the flow canvas!'
+                      : activeCodeTab === 'cloud'
+                      ? 'Pro-Tip: Import this JSON definition into Power Platform Solutions or Logic Apps Designer to deploy cloud orchestrators.'
+                      : 'Pro-Tip: Run this PowerShell script with PAC CLI to automatically provision the solution, flows, and connections.'}
+                  </span>
+                </div>
+                <a
+                  href={api.getDownloadCodeUrl(currentJobId, 'all')}
+                  className="sm:hidden text-violet-400 hover:underline font-semibold"
+                >
+                  Download .zip
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

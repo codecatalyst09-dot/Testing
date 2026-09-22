@@ -146,6 +146,29 @@ export const api = {
     return `${API_BASE}/jobs/${jobId}/outputs/${filename}`;
   },
 
+  async getGeneratedCode(jobId: string): Promise<{
+    workflow_name: string;
+    total_actions: number;
+    pad_script: string;
+    cloud_flow_json: any;
+    powershell_script: string;
+    summary: {
+      pad_lines: number;
+      cloud_actions_count: number;
+      desktop_actions_count: number;
+      cloud_actions_count_stat: number;
+      hybrid_actions_count: number;
+    };
+  }> {
+    const res = await fetch(`${API_BASE}/jobs/${jobId}/code`);
+    if (!res.ok) throw new Error('Failed to generate Power Automate code');
+    return res.json();
+  },
+
+  getDownloadCodeUrl(jobId: string, fileType: 'pad' | 'cloud' | 'ps1' | 'all'): string {
+    return `${API_BASE}/jobs/${jobId}/code/download/${fileType}`;
+  },
+
   async globalSearch(jobId: string, query: string): Promise<any> {
     const res = await fetch(`${API_BASE}/jobs/${jobId}/search?q=${encodeURIComponent(query)}`);
     if (!res.ok) throw new Error('Failed to execute search');
