@@ -32,8 +32,9 @@ class A360Parser:
         source_file: str,
         parent_action_id: Optional[str] = None
     ) -> Optional[ActionModel]:
-        command = node.get("command") or node.get("commandName")
-        if not command:
+        pkg = node.get("packageName") or node.get("package")
+        cmd = node.get("command") or node.get("commandName")
+        if not pkg and not cmd:
             return None
 
         self.action_counter += 1
@@ -43,16 +44,30 @@ class A360Parser:
         # Extract attributes and operation
         attributes = {}
         for k, v in node.items():
-            if k not in ("command", "commandName", "step", "children", "branches", "nodes", "rawAction"):
+            if k not in ("command", "commandName", "packageName", "package", "step", "children", "branches", "nodes", "rawAction"):
                 attributes[k] = v
 
-        operation = (
-            attributes.get("action")
-            or attributes.get("operation")
-            or node.get("actionName")
-            or node.get("action")
-            or ""
-        )
+        if pkg and cmd and pkg.lower() != cmd.lower():
+            command = pkg
+            operation = attributes.get("action") or attributes.get("operation") or cmd
+        elif pkg:
+            command = pkg
+            operation = (
+                attributes.get("action")
+                or attributes.get("operation")
+                or node.get("actionName")
+                or node.get("action")
+                or ""
+            )
+        else:
+            command = cmd
+            operation = (
+                attributes.get("action")
+                or attributes.get("operation")
+                or node.get("actionName")
+                or node.get("action")
+                or ""
+            )
 
         variables_used = self._extract_variables_from_attributes(attributes)
         variables_created = []

@@ -29,7 +29,7 @@ class MappingEngine:
         platform, reason, confidence = ActionClassifier.classify_action(
             cmd, operation, attrs, context_has_cloud, context_has_desktop
         )
-        if db_mapping.get("platform") and platform != "Hybrid":
+        if db_mapping.get("platform") and db_mapping["platform"] != "Manual Review" and platform != "Hybrid":
             platform = db_mapping["platform"]
 
         target_action = "Manual Review Required"
@@ -118,16 +118,47 @@ class MappingEngine:
                     reason = "Interactive web automation requiring PAD browser extension."
 
             elif "sap" in cmd_lower:
-                target_action = "SAP GUI Automation / Connect to SAP"
-                strategy = "Desktop Replacement"
-                complexity = "High"
-                confidence = 0.92
                 dependencies = ["SAP GUI Client", "SAP Scripting enabled on SAP Server"]
-                reason = "A360 SAP actions map to Power Automate Desktop SAP GUI action group or SAP VBScript."
                 manual_steps = [
                     "Ensure SAP GUI Scripting is enabled server-side (rz11 sapgui/user_scripting)",
                     "Configure PAD SAP logon session"
                 ]
+                strategy = "Desktop Replacement"
+                complexity = "High"
+                confidence = 0.92
+                if "connect" in op_lower or "logon" in op_lower:
+                    target_action = "SAP GUI Automation / Connect to SAP"
+                    reason = "Connect to SAP session using PAD SAP GUI Automation."
+                elif "runtransaction" in op_lower or "transaction" in op_lower:
+                    target_action = "SAP GUI Automation (Execute Transaction)"
+                    reason = "Execute SAP transaction code (e.g. F-28) via PAD SAP GUI."
+                elif "settext" in op_lower or "enter" in op_lower:
+                    target_action = "Populate text field in SAP window"
+                    reason = "Set SAP field value via PAD SAP element interaction."
+                elif "press" in op_lower or "click" in op_lower:
+                    target_action = "Press button in SAP window"
+                    reason = "Trigger SAP button click in active SAP GUI window."
+                elif "gettext" in op_lower or "read" in op_lower:
+                    target_action = "Get details of element on SAP window"
+                    reason = "Extract SAP UI text field into flow variable."
+                else:
+                    target_action = "SAP GUI Automation"
+                    reason = "A360 SAP actions map to Power Automate Desktop SAP GUI action group."
+
+            elif "workload" in cmd_lower or "queue" in cmd_lower:
+                dependencies = ["Power Automate Desktop Work Queues / Dataverse"]
+                strategy = "Direct Mapping"
+                complexity = "Low"
+                confidence = 0.94
+                if "insert" in op_lower or "add" in op_lower:
+                    target_action = "Add work queue item"
+                    reason = "Directly maps to PAD Work queues 'Add work queue item' action."
+                elif "process" in op_lower or "get" in op_lower:
+                    target_action = "Process work queue items"
+                    reason = "Directly maps to PAD Work queues 'Process work queue items' action."
+                else:
+                    target_action = "Manage work queue items"
+                    reason = "Directly maps to PAD Work queues module."
 
             elif "file" in cmd_lower or "folder" in cmd_lower or "filesystem" in cmd_lower:
                 target_action = "PAD File & Folder actions (Read/Write/Copy/Delete)"
@@ -234,6 +265,24 @@ class MappingEngine:
             if db_mapping.get("migration_notes"):
                 reason = db_mapping["migration_notes"]
 
+        # Ensure consistent PAD category and migration notes if platform was resolved
+        pad_category = db_mapping.get("pad_category") or ""
+        migration_notes = db_mapping.get("migration_notes") or ""
+
+        if platform == "Power Automate Desktop":
+            if not pad_category or pad_category == "Manual Review Required":
+                if "sap" in cmd_lower:
+                    pad_category = "SAP GUI Automation"
+                elif "workload" in cmd_lower or "queue" in cmd_lower:
+                    pad_category = "Work queues"
+                else:
+                    pad_category = "Desktop Flow"
+            if not migration_notes or "Action not found" in migration_notes:
+                migration_notes = reason
+        elif platform in ("Power Automate Cloud", "Hybrid"):
+            if not migration_notes or "Action not found" in migration_notes:
+                migration_notes = reason
+
         return {
             "source": "A360",
             "targetPlatform": platform,
@@ -248,8 +297,8 @@ class MappingEngine:
             "aaPackage": db_mapping.get("aa_package") or cmd,
             "aaAction": db_mapping.get("aa_action") or (operation or "Execute"),
             "aaDescription": db_mapping.get("aa_description") or "",
-            "padCategory": db_mapping.get("pad_category") or "",
-            "padAction": db_mapping.get("pad_action") or "",
-            "cloudAction": db_mapping.get("cloud_action") or "",
-            "migrationNotes": db_mapping.get("migration_notes") or ""
+            "padCategory": pad_category,
+            "padAction": db_mapping.get("pad_action") or (target_action if platform == "Power Automate Desktop" else ""),
+            "cloudAction": db_mapping.get("cloud_action") or (target_action if platform == "Power Automate Cloud" else ""),
+            "migrationNotes": migration_notes
         }

@@ -18,7 +18,6 @@ REMOVE_TASKBOTS = {
 
 REMOVE_KEYS = {
     "uid",
-    "packageName",
     "disabled",
     "returns",
     "capture",
@@ -119,8 +118,10 @@ class A360Preprocessor:
             return
 
         if isinstance(node, dict):
-            is_action_node = "commandName" in node or "command" in node
-            current_command = node.get("commandName") or node.get("command") or parent_command
+            is_action_node = "commandName" in node or "command" in node or "packageName" in node
+            pkg = node.get("packageName") or node.get("package")
+            cmd = node.get("commandName") or node.get("command") or parent_command
+            current_command = pkg or cmd
 
             if is_action_node:
                 self.raw_step_counter += 1
@@ -133,7 +134,8 @@ class A360Preprocessor:
                     attrs = node["attributes"]
 
                 action_name = (
-                    node.get("actionName")
+                    (cmd if pkg and cmd and pkg != cmd else None)
+                    or node.get("actionName")
                     or node.get("action")
                     or attrs.get("action")
                     or (attrs.get("operation") if isinstance(attrs, dict) else None)

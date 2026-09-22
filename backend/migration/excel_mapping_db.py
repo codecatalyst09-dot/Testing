@@ -135,6 +135,14 @@ class ExcelMappingDB:
             "window": "Window",
             "xml": "XML",
             "json": "JSON",
+            "sap": "SAP",
+            "sapgui": "SAP",
+            "workload": "Workload",
+            "queue": "Workload",
+            "iqbot": "OCR",
+            "iq bot": "OCR",
+            "errorhandler": "Error Handler",
+            "error handling": "Error Handler",
         }
 
         matched_pkg = alias_map.get(cmd_lower.replace(" ", "").replace("_", ""), cmd_clean)
