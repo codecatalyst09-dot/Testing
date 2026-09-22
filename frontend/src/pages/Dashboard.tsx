@@ -19,6 +19,9 @@ import {
   XCircle,
   HelpCircle,
   Sparkles,
+  Bot,
+  Network,
+  ArrowRight,
 } from 'lucide-react';
 
 interface CombinedStep {
@@ -50,6 +53,7 @@ export const Dashboard: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'DISABLED'>('ALL');
   const [platformFilter, setPlatformFilter] = useState<string>('ALL');
+  const [taskFilter, setTaskFilter] = useState<string>('ALL');
 
   useEffect(() => {
     if (!currentJobId) return;
@@ -143,6 +147,7 @@ export const Dashboard: React.FC = () => {
     return combinedSteps.filter((s) => {
       if (statusFilter !== 'ALL' && s.status !== statusFilter) return false;
       if (platformFilter !== 'ALL' && s.targetPlatform !== platformFilter) return false;
+      if (taskFilter !== 'ALL' && s.task !== taskFilter) return false;
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const match =
@@ -156,7 +161,38 @@ export const Dashboard: React.FC = () => {
       }
       return true;
     });
-  }, [combinedSteps, statusFilter, platformFilter, searchQuery]);
+  }, [combinedSteps, statusFilter, platformFilter, taskFilter, searchQuery]);
+
+  // Sub-bots and Rough Idea Overview
+  const subBotsOverview = useMemo(() => {
+    if (!workflow) return null;
+    if (workflow.explanation) return workflow.explanation;
+
+    const mainTask = workflow.tasks?.find((t) => t.isMain) || (workflow.tasks && workflow.tasks[0]);
+    const mainName = mainTask ? mainTask.name : 'MainTask';
+    const subTasks = (workflow.tasks || []).filter((t) => t.name !== mainName);
+    const hasSubBots = subTasks.length > 0;
+
+    return {
+      rough_idea: hasSubBots
+        ? `Multi-Bot Process: The main orchestrator '${mainName}' coordinates ${subTasks.length} dedicated sub-bot(s) across ${workflow.statistics.totalActions} total steps.`
+        : `Standalone Automation: '${mainName}' operates as an independent single taskbot executing ${workflow.statistics.totalActions} sequential steps without child sub-bots.`,
+      has_sub_bots: hasSubBots,
+      sub_bot_count: subTasks.length,
+      main_bot_name: mainName,
+      sub_bots: subTasks.map((t) => ({
+        name: t.name,
+        purpose: t.purpose,
+        steps: t.stepsCount,
+        platform: t.cloudOrDesktop === 'Desktop' ? 'Power Automate Desktop' : t.cloudOrDesktop === 'Cloud' ? 'Power Automate Cloud' : 'Hybrid',
+        called_by: t.parentTask || mainName,
+      })),
+      architecture_recommendation: hasSubBots
+        ? `Deploy '${mainName}' as a parent Cloud Flow (or Master Desktop Flow) that manages process state and triggers child subflows.`
+        : `Migrate '${mainName}' as a single consolidated Power Automate Flow.`,
+      ai_enhanced: false,
+    };
+  }, [workflow]);
 
   if (!currentJobId) {
     return (
@@ -286,7 +322,135 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. Key Metrics Grid */}
+      {/* 2. Automation Overview & Multi-Bot Architecture Panel */}
+      {subBotsOverview && (
+        <div className="p-6 rounded-2xl bg-slate-850 border border-slate-800 shadow-xl space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-primary-500/10 text-primary-400 border border-primary-500/20">
+                <Bot className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  Automation Overview & Multi-Bot Architecture
+                  {subBotsOverview.ai_enhanced && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center gap-1">
+                      <Sparkles className="w-3 h-3" /> GPT-4.1 Powered
+                    </span>
+                  )}
+                </h3>
+                <p className="text-[11px] text-slate-400">
+                  {subBotsOverview.has_sub_bots
+                    ? `Hierarchical Multi-Bot Process: 1 Main Orchestrator + ${subBotsOverview.sub_bot_count} Specialized Sub-Bots`
+                    : 'Standalone Single Taskbot: Self-contained business process'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className={`px-3 py-1 rounded-lg text-xs font-semibold border ${
+                subBotsOverview.has_sub_bots
+                  ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                  : 'bg-blue-500/15 text-blue-300 border-blue-500/30'
+              }`}>
+                {subBotsOverview.has_sub_bots
+                  ? `${subBotsOverview.sub_bot_count} Sub-Bots Detected`
+                  : 'Single Taskbot'}
+              </span>
+            </div>
+          </div>
+
+          {/* Rough Idea Description */}
+          <div className="p-4 rounded-xl bg-slate-900 border border-slate-800/80">
+            <h4 className="text-[11px] uppercase tracking-wider font-bold text-slate-400 mb-1.5 flex items-center gap-1.5">
+              <Activity className="w-3.5 h-3.5 text-primary-400" />
+              Process Overview & Rough Idea
+            </h4>
+            <p className="text-xs text-slate-200 leading-relaxed">
+              {subBotsOverview.rough_idea}
+            </p>
+          </div>
+
+          {/* Sub-Bots Breakdown (if multiple bots) */}
+          {subBotsOverview.has_sub_bots && (
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center justify-between">
+                <h4 className="text-[11px] uppercase tracking-wider font-bold text-slate-400 flex items-center gap-1.5">
+                  <Network className="w-3.5 h-3.5 text-amber-400" />
+                  Sub-Bot Breakdown & Call Hierarchy
+                </h4>
+                <span className="text-[11px] text-slate-500">
+                  Click a bot card to filter the actions table below
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                {/* Main Bot Card */}
+                <div
+                  onClick={() => setTaskFilter(taskFilter === subBotsOverview.main_bot_name ? 'ALL' : subBotsOverview.main_bot_name)}
+                  className={`p-3.5 rounded-xl border transition-all cursor-pointer hover:scale-[1.02] space-y-2 ${
+                    taskFilter === subBotsOverview.main_bot_name
+                      ? 'bg-primary-600/20 border-primary-400 shadow-md shadow-primary-500/20'
+                      : 'bg-primary-950/20 border-primary-500/30 hover:border-primary-400'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-primary-500/20 text-primary-300 border border-primary-500/40">
+                      Main Bot
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono">Orchestrator</span>
+                  </div>
+                  <div className="font-bold text-xs text-white truncate" title={subBotsOverview.main_bot_name}>
+                    {subBotsOverview.main_bot_name}
+                  </div>
+                  <div className="text-[11px] text-slate-400 line-clamp-1">
+                    Coordinates {subBotsOverview.sub_bot_count} sub-bots
+                  </div>
+                </div>
+
+                {/* Child Sub-Bots Cards */}
+                {subBotsOverview.sub_bots.map((sub) => {
+                  const isSelected = taskFilter === sub.name;
+                  return (
+                    <div
+                      key={sub.name}
+                      onClick={() => setTaskFilter(isSelected ? 'ALL' : sub.name)}
+                      className={`p-3.5 rounded-xl border transition-all cursor-pointer hover:scale-[1.02] space-y-2 ${
+                        isSelected
+                          ? 'bg-amber-600/20 border-amber-400 shadow-md shadow-amber-500/20'
+                          : 'bg-slate-900 border-slate-800 hover:border-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-300 border border-slate-700">
+                          Sub-Bot
+                        </span>
+                        <span className="text-[10px] text-emerald-400 font-mono">
+                          {sub.steps} steps
+                        </span>
+                      </div>
+                      <div className="font-bold text-xs text-slate-200 truncate" title={sub.name}>
+                        {sub.name}
+                      </div>
+                      <div className="text-[11px] text-slate-400 line-clamp-1" title={sub.purpose}>
+                        {sub.purpose}
+                      </div>
+                      <div className="pt-1 flex items-center justify-between text-[10px]">
+                        <span className="text-slate-500">Target:</span>
+                        <span className="font-medium text-slate-300">
+                          {sub.platform === 'Power Automate Desktop' ? 'Desktop (PAD)' : sub.platform === 'Power Automate Cloud' ? 'Cloud Flow' : 'Hybrid'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 3. Key Metrics Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard
           title="Total Evaluated Steps"
@@ -384,6 +548,22 @@ export const Dashboard: React.FC = () => {
               <option value="Hybrid">Hybrid</option>
               <option value="Manual Review">Manual Review</option>
             </select>
+
+            {/* Task Filter */}
+            {workflow.tasks && workflow.tasks.length > 1 && (
+              <select
+                value={taskFilter}
+                onChange={(e) => setTaskFilter(e.target.value)}
+                className="px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-750 text-xs text-slate-300 focus:outline-none focus:border-primary-500"
+              >
+                <option value="ALL">All Tasks ({workflow.tasks.length})</option>
+                {workflow.tasks.map((t) => (
+                  <option key={t.name} value={t.name}>
+                    {t.name} {t.isMain ? '(Main Orchestrator)' : '(Sub-Bot)'}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
         </div>
 

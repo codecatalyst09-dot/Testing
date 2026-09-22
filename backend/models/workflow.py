@@ -50,6 +50,24 @@ class StatisticsModel(BaseModel):
     platformDistribution: Dict[str, float] = Field(default_factory=dict)
     complexityDistribution: Dict[str, float] = Field(default_factory=dict)
 
+class SubBotDetail(BaseModel):
+    name: str
+    purpose: str = "Subtask Automation"
+    steps: int = 0
+    platform: str = "Power Automate Desktop"
+    called_by: Optional[str] = None
+    target_action: Optional[str] = None
+
+class WorkflowExplanation(BaseModel):
+    rough_idea: str
+    has_sub_bots: bool = False
+    sub_bot_count: int = 0
+    main_bot_name: str = "MainTask"
+    sub_bots: List[SubBotDetail] = Field(default_factory=list)
+    architecture_recommendation: str = ""
+    ai_enhanced: bool = False
+    model_used: Optional[str] = None
+
 class WorkflowModel(BaseModel):
     workflow: WorkflowInfo
     tasks: List[TaskModel] = Field(default_factory=list)
@@ -58,3 +76,5 @@ class WorkflowModel(BaseModel):
     dependencies: List[DependencyModel] = Field(default_factory=list)
     disabledActions: List[DisabledActionModel] = Field(default_factory=list)
     statistics: StatisticsModel = Field(default_factory=StatisticsModel)
+    explanation: Optional[WorkflowExplanation] = None
+

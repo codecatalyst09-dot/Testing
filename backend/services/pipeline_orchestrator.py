@@ -187,6 +187,16 @@ class PipelineOrchestrator:
             )
             cls.update_job_stage(job_id, PipelineStage.MAPPING_COMPLETE)
 
+            # Generate AI Explanation & Multi-bot architecture overview
+            from backend.ai.explainer import AIWorkflowExplainer
+            from backend.models.workflow import WorkflowExplanation
+            try:
+                explainer = AIWorkflowExplainer()
+                exp_data = explainer.explain_workflow(workflow_model, migration_plan)
+                workflow_model.explanation = WorkflowExplanation(**exp_data)
+            except Exception as e:
+                logger.warning("PIPELINE", f"Failed to generate workflow explanation: {e}")
+
             # Stage 13: REPORT_GENERATED
             md_report = ReportGenerator.generate_markdown(workflow_model, migration_plan)
             html_report = ReportGenerator.generate_html(workflow_model, migration_plan, md_report)

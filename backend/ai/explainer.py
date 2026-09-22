@@ -27,53 +27,87 @@ class AIWorkflowExplainer:
 
     def explain_workflow(self, workflow: WorkflowModel, plan: MigrationPlanModel) -> Dict[str, Any]:
         """
-        Generates business process summary and migration reasoning.
-        Uses OpenAI LLM when key is present, falls back gracefully to deterministic logic.
+        Generates business process summary (rough idea) and multi-bot architecture breakdown.
+        Uses OpenAI LLM (gpt-4.1) when key is present, falls back gracefully to deterministic logic.
         """
         total_steps = workflow.statistics.totalActions
         cloud_pct = workflow.statistics.platformDistribution.get("Power Automate Cloud", 0)
         desktop_pct = workflow.statistics.platformDistribution.get("Power Automate Desktop", 0)
         hybrid_pct = workflow.statistics.platformDistribution.get("Hybrid", 0)
 
-        # Baseline deterministic summary
-        deterministic_summary = (
-            f"This automation '{workflow.workflow.name}' executes an enterprise business process comprising "
-            f"{total_steps} sequential and nested RPA steps across {workflow.statistics.totalTasks} taskbot(s). "
-            f"Based on deterministic analysis, {cloud_pct}% of steps can execute serverlessly in Power Automate Cloud, "
-            f"while {desktop_pct}% require Power Automate Desktop for local UI/Excel interactions."
-        )
+        # Identify Main Bot and Sub-Bots
+        main_task = next((t for t in workflow.tasks if t.isMain), None) or (workflow.tasks[0] if workflow.tasks else None)
+        main_bot_name = main_task.name if main_task else "MainTask"
+        sub_tasks = [t for t in workflow.tasks if t != main_task]
+        has_sub_bots = len(sub_tasks) > 0
+        sub_bot_count = len(sub_tasks)
 
-        deterministic_advice = (
-            f"Recommended strategy: Deploy a parent Cloud Flow to handle triggers, data preparation, and notifications, "
-            f"orchestrating unattended Power Automate Desktop flows on dedicated virtual machines for local application tasks."
-        )
+        sub_bots_data = [
+            {
+                "name": t.name,
+                "purpose": t.purpose,
+                "steps": t.stepsCount,
+                "platform": (
+                    "Power Automate Desktop" if t.cloudOrDesktop == "Desktop"
+                    else "Power Automate Cloud" if t.cloudOrDesktop == "Cloud"
+                    else "Hybrid"
+                ),
+                "called_by": t.parentTask or main_bot_name,
+                "target_action": t.migrationStrategy
+            }
+            for t in sub_tasks
+        ]
+
+        # Deterministic Rough Idea
+        if has_sub_bots:
+            sub_summary_list = [f"'{t.name}' ({t.purpose})" for t in sub_tasks[:4]]
+            sub_text = ", ".join(sub_summary_list)
+            if sub_bot_count > 4:
+                sub_text += f" and {sub_bot_count - 4} other sub-tasks"
+
+            rough_idea_text = (
+                f"Multi-Bot Process: The main orchestrator '{main_bot_name}' executes an enterprise workflow comprising "
+                f"{total_steps} steps by coordinating {sub_bot_count} dedicated sub-bot(s): {sub_text}. "
+                f"The main task initiates processing, establishes data context, and invokes child flows to handle document extraction, queue management, and application updates."
+            )
+            deterministic_advice = (
+                f"Recommended strategy: Deploy '{main_bot_name}' as a parent Cloud Flow (or Master Desktop Flow) that manages process state, "
+                f"orchestrating the {sub_bot_count} child sub-bots as modular Power Automate Desktop subflows or Cloud Child Flows."
+            )
+        else:
+            rough_idea_text = (
+                f"Standalone Automation: This bot '{main_bot_name}' operates as an independent single taskbot executing {total_steps} sequential steps. "
+                f"All business logic, document manipulation, and user interface actions are self-contained without delegating to child sub-bots."
+            )
+            deterministic_advice = (
+                f"Recommended strategy: Migrate '{main_bot_name}' as a single consolidated Power Automate Flow based on its action distribution."
+            )
 
         if not self.client:
             return {
-                "business_purpose": deterministic_summary,
+                "rough_idea": rough_idea_text,
+                "has_sub_bots": has_sub_bots,
+                "sub_bot_count": sub_bot_count,
+                "main_bot_name": main_bot_name,
+                "sub_bots": sub_bots_data,
                 "architecture_recommendation": deterministic_advice,
                 "ai_enhanced": False,
                 "model_used": None
             }
 
         try:
-            sample_actions = [
-                f"- Task: {a.task} | Action: {a.aaPackage} > {a.aaAction} -> Target: {a.powerAutomateAction} ({a.cloudOrDesktop})"
-                for a in workflow.actions[:25]
-            ]
-            actions_summary_str = "\n".join(sample_actions)
-
+            sub_bots_info_str = "\n".join([f"- Sub-Bot: {s['name']} | Role: {s['purpose']} | Steps: {s['steps']} | Target: {s['platform']}" for s in sub_bots_data])
             prompt = (
-                f"You are an enterprise RPA Migration Architect evaluating an Automation Anywhere A360 automation "
-                f"being migrated to Microsoft Power Automate.\n\n"
+                f"You are an enterprise RPA Migration Architect evaluating an Automation Anywhere A360 automation.\n\n"
                 f"Automation Name: {workflow.workflow.name}\n"
-                f"Total Tasks: {workflow.statistics.totalTasks}\n"
+                f"Main Bot: {main_bot_name}\n"
+                f"Has Sub-Bots: {has_sub_bots} (Total Sub-Bots: {sub_bot_count})\n"
+                f"Sub-Bots Details:\n{sub_bots_info_str if has_sub_bots else 'No child sub-bots.'}\n\n"
                 f"Total Steps: {total_steps}\n"
                 f"Platform Breakdown: Cloud={cloud_pct}%, Desktop={desktop_pct}%, Hybrid={hybrid_pct}%\n\n"
-                f"Sample Bot Workflow Actions:\n{actions_summary_str}\n\n"
                 f"Please provide:\n"
-                f"1. A concise 2-3 sentence executive business process summary explaining what this automation accomplishes.\n"
-                f"2. A concise 2-3 sentence technical migration strategy recommendation for Power Automate (Cloud vs Desktop vs Hybrid)."
+                f"1. A concise 2-3 sentence 'rough idea' of what this automation accomplishes, explicitly mentioning the main bot and describing what each sub-bot is responsible for.\n"
+                f"2. A 2-sentence architecture recommendation on how the main bot and sub-bots should be structured in Power Automate."
             )
 
             response = self.client.chat.completions.create(
@@ -87,9 +121,12 @@ class AIWorkflowExplainer:
             )
 
             content = response.choices[0].message.content.strip()
-            # Split if sections are separated or use content
             return {
-                "business_purpose": content,
+                "rough_idea": content,
+                "has_sub_bots": has_sub_bots,
+                "sub_bot_count": sub_bot_count,
+                "main_bot_name": main_bot_name,
+                "sub_bots": sub_bots_data,
                 "architecture_recommendation": deterministic_advice,
                 "ai_enhanced": True,
                 "model_used": self.model
@@ -97,7 +134,11 @@ class AIWorkflowExplainer:
         except Exception as e:
             logger.error("AI_EXPLAINER", f"Error generating LLM workflow explanation with {self.model}: {e}")
             return {
-                "business_purpose": deterministic_summary,
+                "rough_idea": rough_idea_text,
+                "has_sub_bots": has_sub_bots,
+                "sub_bot_count": sub_bot_count,
+                "main_bot_name": main_bot_name,
+                "sub_bots": sub_bots_data,
                 "architecture_recommendation": deterministic_advice,
                 "ai_enhanced": False,
                 "model_used": None,

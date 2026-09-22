@@ -31,14 +31,23 @@ class TaskAnalyzer:
 
             # Check actions in this task for runTask calls
             for a in task_actions:
-                if a.command.lower() in ("runtask", "subtask"):
+                cmd_l = a.command.lower()
+                op_l = a.operation.lower()
+                is_subtask_call = (
+                    cmd_l in ("runtask", "subtask")
+                    or (cmd_l in ("taskbot", "task bot") and op_l in ("run", "execute", "runtask"))
+                    or "runtask" in str(a.rawAction).lower()
+                )
+                if is_subtask_call:
                     # Find target task
                     attrs = a.attributes or {}
                     target = (
-                        attrs.get("taskbot")
+                        attrs.get("botPath")
+                        or attrs.get("taskbot")
                         or attrs.get("taskbotFile")
                         or attrs.get("task")
                         or attrs.get("name")
+                        or attrs.get("path")
                         or "ChildTask"
                     )
                     clean_target = Path(str(target)).stem
@@ -50,6 +59,8 @@ class TaskAnalyzer:
             has_browser = any("browser" in a.command.lower() for a in task_actions)
             has_email = any("email" in a.command.lower() for a in task_actions)
             has_api = any("http" in a.command.lower() or "rest" in a.command.lower() for a in task_actions)
+            has_sap = any("sap" in a.command.lower() for a in task_actions)
+            has_workload = any("workload" in a.command.lower() or "queue" in a.command.lower() for a in task_actions)
 
             purpose_parts = []
             if has_excel:
@@ -60,8 +71,12 @@ class TaskAnalyzer:
                 purpose_parts.append("REST API Integration")
             if has_email:
                 purpose_parts.append("Email Dispatch & Notifications")
+            if has_sap:
+                purpose_parts.append("SAP ERP Operations")
+            if has_workload:
+                purpose_parts.append("Work Queue Management")
 
-            purpose = ", ".join(purpose_parts) if purpose_parts else ("Main Process Flow" if is_main else "Subtask Automation")
+            purpose = ", ".join(purpose_parts) if purpose_parts else ("Main Process Orchestrator" if is_main else "Subtask Automation")
 
             # Determine classification of task
             has_desktop = any(a.cloudOrDesktop == "Power Automate Desktop" for a in task_actions)
