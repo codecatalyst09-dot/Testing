@@ -501,6 +501,23 @@ export const Dashboard: React.FC = () => {
               </div>
             </div>
           )}
+
+          {/* Action Bar: Direct Generate Code Trigger */}
+          <div className="pt-3 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-xs text-slate-300">
+              <Sparkles className="w-4 h-4 text-violet-400 shrink-0" />
+              <span>
+                Ready to port this architecture into native Power Automate Desktop scripts and Cloud Flows?
+              </span>
+            </div>
+            <button
+              onClick={handleOpenCodeModal}
+              className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 via-indigo-600 to-primary-600 hover:from-violet-500 hover:via-indigo-500 hover:to-primary-500 text-white font-bold text-xs shadow-md shadow-indigo-600/25 transition-all hover:scale-[1.02] active:scale-[0.98] shrink-0"
+            >
+              <Code2 className="w-4 h-4 text-violet-200" />
+              <span>Generate Power Automate Code</span>
+            </button>
+          </div>
         </div>
       )}
 
