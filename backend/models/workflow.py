@@ -25,6 +25,7 @@ class TaskModel(BaseModel):
     outputs: List[str] = Field(default_factory=list)
     cloudOrDesktop: str = "Desktop"
     migrationStrategy: str = "Direct Mapping"
+    centricity: str = "Desktop-Centric"
 
 class DependencyModel(BaseModel):
     name: str
@@ -77,4 +78,7 @@ class WorkflowModel(BaseModel):
     disabledActions: List[DisabledActionModel] = Field(default_factory=list)
     statistics: StatisticsModel = Field(default_factory=StatisticsModel)
     explanation: Optional[WorkflowExplanation] = None
+    botCentricity: str = "Desktop-Centric"  # "Desktop-Centric" | "Cloud-Centric" | "Hybrid"
+    botCentricityReason: str = ""
+    centricityMetrics: Dict[str, Any] = Field(default_factory=dict)
 

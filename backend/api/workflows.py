@@ -17,6 +17,10 @@ def get_workflow(job_id: str):
     try:
         with open(parsed_file, "r", encoding="utf-8") as f:
             data = json.load(f)
-        return WorkflowModel(**data)
+        wf = WorkflowModel(**data)
+        if not getattr(wf, "botCentricityReason", None):
+            from backend.migration.centricity_analyzer import CentricityAnalyzer
+            wf = CentricityAnalyzer.analyze_and_harmonize(wf)
+        return wf
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to read workflow data: {str(e)}")

@@ -24,6 +24,7 @@ export interface TaskModel {
   outputs: string[];
   cloudOrDesktop: string;
   migrationStrategy: string;
+  centricity?: 'Desktop-Centric' | 'Cloud-Centric' | 'Hybrid' | string;
 }
 
 export interface DependencyModel {
@@ -81,4 +82,7 @@ export interface WorkflowModel {
   disabledActions: DisabledActionModel[];
   statistics: StatisticsModel;
   explanation?: WorkflowExplanation | null;
+  botCentricity?: 'Desktop-Centric' | 'Cloud-Centric' | 'Hybrid' | string;
+  botCentricityReason?: string;
+  centricityMetrics?: Record<string, any>;
 }

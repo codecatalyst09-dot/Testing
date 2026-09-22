@@ -177,6 +177,10 @@ class PipelineOrchestrator:
             # Stage 11: CLASSIFICATION_COMPLETE
             cls.update_job_stage(job_id, PipelineStage.CLASSIFICATION_COMPLETE)
 
+            # Analyze Bot Centricity (Desktop-Centric vs Cloud-Centric) & Harmonize Actions
+            from backend.migration.centricity_analyzer import CentricityAnalyzer
+            workflow_model = CentricityAnalyzer.analyze_and_harmonize(workflow_model)
+
             # Stage 12: MAPPING_COMPLETE
             migration_plan = MigrationPlanBuilder.build_plan(
                 job_id=job_id,

@@ -166,20 +166,21 @@ class ExcelExportService:
         ws["I6"].font = Font(name="Calibri", size=8, italic=True, color="475569")
         ws["I6"].alignment = Alignment(horizontal="center", vertical="center")
 
-        # Card 4: Downstream Handoff Notice (M4:P6)
+        # Card 4: Architecture Affinity (M4:P6)
+        centricity_val = getattr(workflow, "botCentricity", "Desktop-Centric")
         ws.merge_cells("M4:P4")
-        ws["M4"] = "DOWNSTREAM AGENT DIRECTIVE"
+        ws["M4"] = "RUNTIME ARCHITECTURE AFFINITY"
         ws["M4"].font = Font(name="Calibri", size=9, bold=True, color="64748B")
         ws["M4"].alignment = Alignment(horizontal="center", vertical="center")
 
         ws.merge_cells("M5:P5")
-        ws["M5"] = "Publication-Grade Migration Specification"
-        ws["M5"].font = Font(name="Calibri", size=11, bold=True, color="065F46")
-        ws["M5"].fill = PatternFill("solid", fgColor="D1FAE5")
+        ws["M5"] = f"{centricity_val} (Harmonized)"
+        ws["M5"].font = Font(name="Calibri", size=11, bold=True, color="4338CA" if "Desktop" in centricity_val else "065F46")
+        ws["M5"].fill = PatternFill("solid", fgColor="E0E7FF" if "Desktop" in centricity_val else "D1FAE5")
         ws["M5"].alignment = Alignment(horizontal="center", vertical="center")
 
         ws.merge_cells("M6:P6")
-        ws["M6"] = "All actions mapped to Power Automate with parameters, variables & disabled flags."
+        ws["M6"] = "All compatible flows harmonized for cohesive single-runtime execution."
         ws["M6"].font = Font(name="Calibri", size=8, italic=True, color="475569")
         ws["M6"].alignment = Alignment(horizontal="center", vertical="center")
 

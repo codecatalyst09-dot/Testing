@@ -326,11 +326,29 @@ export const Dashboard: React.FC = () => {
       {/* 1. Top Executive Banner with Migration Complexity & Direct Download */}
       <div className={`p-6 rounded-2xl bg-gradient-to-r ${complexityBadge.bannerBg} border flex flex-wrap items-center justify-between gap-6 shadow-xl`}>
         <div className="space-y-2 max-w-2xl">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
             <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider border ${complexityBadge.badgeClass} flex items-center gap-1.5`}>
               <Sparkles className="w-3.5 h-3.5" />
               {complexityBadge.label}
             </span>
+            {workflow.botCentricity && (
+              <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider border flex items-center gap-1.5 ${
+                workflow.botCentricity === 'Desktop-Centric'
+                  ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40 shadow-sm shadow-indigo-500/20'
+                  : workflow.botCentricity === 'Cloud-Centric'
+                  ? 'bg-sky-500/20 text-sky-300 border-sky-500/40 shadow-sm shadow-sky-500/20'
+                  : 'bg-purple-500/20 text-purple-300 border-purple-500/40 shadow-sm shadow-purple-500/20'
+              }`}>
+                {workflow.botCentricity === 'Desktop-Centric' ? (
+                  <Monitor className="w-3.5 h-3.5 text-indigo-400" />
+                ) : workflow.botCentricity === 'Cloud-Centric' ? (
+                  <Cloud className="w-3.5 h-3.5 text-sky-400" />
+                ) : (
+                  <Network className="w-3.5 h-3.5 text-purple-400" />
+                )}
+                <span>{workflow.botCentricity}</span>
+              </span>
+            )}
             <span className="text-xs font-mono text-slate-400">
               Rule: {complexityBadge.rule}
             </span>
@@ -424,6 +442,51 @@ export const Dashboard: React.FC = () => {
               {subBotsOverview.rough_idea}
             </p>
           </div>
+
+          {/* Centricity Architecture Insight */}
+          {workflow.botCentricity && (
+            <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 flex items-start gap-3.5">
+              <div className={`p-2.5 rounded-xl shrink-0 border ${
+                workflow.botCentricity === 'Desktop-Centric'
+                  ? 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30'
+                  : workflow.botCentricity === 'Cloud-Centric'
+                  ? 'bg-sky-500/15 text-sky-400 border-sky-500/30'
+                  : 'bg-purple-500/15 text-purple-400 border-purple-500/30'
+              }`}>
+                {workflow.botCentricity === 'Desktop-Centric' ? (
+                  <Monitor className="w-4 h-4" />
+                ) : workflow.botCentricity === 'Cloud-Centric' ? (
+                  <Cloud className="w-4 h-4" />
+                ) : (
+                  <Network className="w-4 h-4" />
+                )}
+              </div>
+              <div className="space-y-1">
+                <div className="text-xs font-bold text-white flex items-center gap-2">
+                  <span>Runtime Architecture Affinity:</span>
+                  <span className={`px-2 py-0.5 rounded text-[11px] font-extrabold uppercase tracking-wide border ${
+                    workflow.botCentricity === 'Desktop-Centric'
+                      ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
+                      : workflow.botCentricity === 'Cloud-Centric'
+                      ? 'bg-sky-500/20 text-sky-300 border-sky-500/30'
+                      : 'bg-purple-500/20 text-purple-300 border-purple-500/30'
+                  }`}>
+                    {workflow.botCentricity}
+                  </span>
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                    Actions Harmonized
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  {workflow.botCentricityReason || (
+                    workflow.botCentricity === 'Desktop-Centric'
+                      ? 'Local desktop dependencies detected. All compatible loops, conditionals, strings, and variables are harmonized to native Power Automate Desktop actions to avoid cloud-desktop context switching.'
+                      : 'Serverless cloud flow. All compatible actions are harmonized to native Power Automate Cloud connectors and expressions.'
+                  )}
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Sub-Bots Breakdown (if multiple bots) */}
           {subBotsOverview.has_sub_bots && (

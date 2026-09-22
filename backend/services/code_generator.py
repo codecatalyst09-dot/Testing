@@ -23,6 +23,8 @@ class CodeGenerator:
         return {
             "workflow_name": workflow.workflow.name,
             "total_actions": workflow.statistics.totalActions,
+            "bot_centricity": getattr(workflow, "botCentricity", "Desktop-Centric"),
+            "bot_centricity_reason": getattr(workflow, "botCentricityReason", ""),
             "pad_script": pad_script,
             "cloud_flow_json": cloud_json,
             "powershell_script": powershell_script,

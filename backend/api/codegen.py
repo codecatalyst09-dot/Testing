@@ -29,6 +29,10 @@ def get_generated_code(job_id: str):
         wf_data = json.load(f)
     workflow_model = WorkflowModel(**wf_data)
 
+    if not getattr(workflow_model, "botCentricityReason", None):
+        from backend.migration.centricity_analyzer import CentricityAnalyzer
+        workflow_model = CentricityAnalyzer.analyze_and_harmonize(workflow_model)
+
     if plan_file.exists():
         with open(plan_file, "r", encoding="utf-8") as f:
             plan_data = json.load(f)
