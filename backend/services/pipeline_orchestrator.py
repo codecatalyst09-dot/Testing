@@ -12,6 +12,7 @@ from backend.services.zip_service import ZipService
 from backend.services.a360_preprocessor import A360Preprocessor, split_json_file
 from backend.services.a360_parser import A360Parser
 from backend.services.report_generator import ReportGenerator
+from backend.services.excel_export_service import ExcelExportService
 from backend.migration.migration_plan import MigrationPlanBuilder
 from backend.models.workflow import WorkflowModel
 from backend.models.migration import MigrationPlanModel
@@ -222,6 +223,10 @@ class PipelineOrchestrator:
             with open(reports_dir / "migration_summary.json", "w", encoding="utf-8") as f:
                 json.dump(summary_json, f, indent=2, ensure_ascii=False)
 
+            # Generate Definitive Step-by-Step Migration Excel (.xlsx)
+            excel_report_path = reports_dir / "AA_to_PowerAutomate_Migration_Plan.xlsx"
+            ExcelExportService.generate_migration_excel(workflow_model, excel_report_path)
+
             # Save unified cleaned_workflow.json
             unified_cleaned = [ct[2] for ct in cleaned_taskbots] if len(cleaned_taskbots) > 1 else (cleaned_taskbots[0][2] if cleaned_taskbots else {})
             with open(processed_dir / "cleaned_workflow.json", "w", encoding="utf-8") as f:
@@ -230,7 +235,7 @@ class PipelineOrchestrator:
             # Also generate chunks for downstream analysis
             split_json_file(processed_dir / "cleaned_workflow.json", output_dir=chunks_dir, chunk_size=25000)
 
-            # Populate outputs/ directory with the 10 required artifacts
+            # Populate outputs/ directory with the artifacts
             # 1. cleaned_workflow.json
             shutil.copy(processed_dir / "cleaned_workflow.json", outputs_dir / "cleaned_workflow.json")
             # 2. parsed_workflow.json
@@ -251,6 +256,8 @@ class PipelineOrchestrator:
             shutil.copy(reports_dir / "migration_report.html", outputs_dir / "migration_report.html")
             # 10. migration_summary.json
             shutil.copy(reports_dir / "migration_summary.json", outputs_dir / "migration_summary.json")
+            # 11. AA_to_PowerAutomate_Migration_Plan.xlsx (Authoritative Migration Spreadsheet)
+            shutil.copy(excel_report_path, outputs_dir / "AA_to_PowerAutomate_Migration_Plan.xlsx")
 
             # Package all 10 outputs into A360_Migration_Analysis_<timestamp>.zip
             timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")

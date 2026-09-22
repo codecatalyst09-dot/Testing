@@ -138,6 +138,10 @@ export const api = {
     return `${API_BASE}/jobs/${jobId}/download`;
   },
 
+  getDownloadExcelUrl(jobId: string): string {
+    return `${API_BASE}/jobs/${jobId}/download-excel`;
+  },
+
   getSingleOutputUrl(jobId: string, filename: string): string {
     return `${API_BASE}/jobs/${jobId}/outputs/${filename}`;
   },

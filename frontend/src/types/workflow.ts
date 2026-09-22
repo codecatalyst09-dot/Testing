@@ -39,6 +39,8 @@ export interface StatisticsModel {
   totalWorkflows: number;
   totalTasks: number;
   totalActions: number;
+  totalStepsEvaluated?: number;
+  migrationComplexity?: 'Easy' | 'Medium' | 'Hard' | string;
   cloudActions: number;
   desktopActions: number;
   hybridActions: number;

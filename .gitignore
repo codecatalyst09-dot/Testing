@@ -20,6 +20,7 @@ dist-ssr/
 backend/storage/*.db
 backend/storage/jobs/*
 !backend/storage/jobs/.gitkeep
+storage/
 
 # IDE / OS
 .vscode/

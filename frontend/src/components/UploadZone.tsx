@@ -1,16 +1,15 @@
 import React, { useState, useRef } from 'react';
-import { UploadCloud, FileCode, CheckCircle, AlertCircle, Play, FileArchive } from 'lucide-react';
+import { UploadCloud, FileCode, CheckCircle, AlertCircle, FileArchive, ArrowRight, Sparkles } from 'lucide-react';
 import { api } from '../services/api';
-import { JobSummary } from '../types/job';
 import { useJob } from '../context/JobContext';
 
 export const UploadZone: React.FC = () => {
   const { setCurrentJobId, setActiveTab, refreshJobs } = useJob();
   const [dragActive, setDragActive] = useState<boolean>(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState<boolean>(false);
-  const [analyzing, setAnalyzing] = useState<boolean>(false);
-  const [uploadedJob, setUploadedJob] = useState<JobSummary | null>(null);
+  const [processing, setProcessing] = useState<boolean>(false);
+  const [statusText, setStatusText] = useState<string>('');
+  const [progressPercent, setProgressPercent] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -37,7 +36,7 @@ export const UploadZone: React.FC = () => {
     setError(null);
     const ext = file.name.split('.').pop()?.toLowerCase();
     if (ext !== 'zip' && ext !== 'json') {
-      setError('Unsupported file type. Please upload an Automation Anywhere A360 .zip package or .json taskbot.');
+      setError('Unsupported file format. Please upload an Automation Anywhere A360 .zip package or .json taskbot.');
       return;
     }
 
@@ -47,147 +46,172 @@ export const UploadZone: React.FC = () => {
     }
 
     setSelectedFile(file);
-    setUploading(true);
+    setProcessing(true);
+    setStatusText('1/3: Uploading & Preprocessing file (cleaning noise, detecting disabled actions)...');
+    setProgressPercent(25);
 
     try {
+      // 1. Upload
       const job = await api.uploadFile(file);
-      setUploadedJob(job);
+      setProgressPercent(50);
+      setStatusText('2/3: Parsing A360 actions & mapping to Power Automate reference...');
+
+      // 2. Start analysis
+      await api.startAnalysis(job.job_id);
+      setProgressPercent(75);
+
+      // 3. Poll until completed
+      setStatusText('3/3: Evaluating migration complexity & generating detailed Excel blueprint...');
+      let completed = false;
+      for (let i = 0; i < 20; i++) {
+        await new Promise((r) => setTimeout(r, 600));
+        const statusData = await api.getJobStatus(job.job_id);
+        if (statusData.status === 'COMPLETED') {
+          completed = true;
+          break;
+        }
+        if (statusData.status === 'FAILED') {
+          throw new Error('Analysis pipeline encountered an issue processing the file.');
+        }
+      }
+
+      setProgressPercent(100);
+      setStatusText('Done! Loading migration blueprint...');
+      await refreshJobs();
       setCurrentJobId(job.job_id);
-      await refreshJobs();
-    } catch (err: any) {
-      setError(err.message || 'Failed to upload package');
-    } finally {
-      setUploading(false);
-    }
-  };
 
-  const startAnalysis = async () => {
-    if (!uploadedJob) return;
-    setAnalyzing(true);
-    setError(null);
-
-    try {
-      await api.startAnalysis(uploadedJob.job_id);
-      await refreshJobs();
-      setActiveTab('analysis');
+      setTimeout(() => {
+        setProcessing(false);
+        setActiveTab('dashboard');
+      }, 400);
     } catch (err: any) {
-      setError(err.message || 'Failed to start analysis');
-      setAnalyzing(false);
+      setError(err.message || 'Failed to process file');
+      setProcessing(false);
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-2xl mx-auto space-y-6">
       {/* Upload Dropzone */}
       <div
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
         onDrop={handleDrop}
-        onClick={() => inputRef.current?.click()}
-        className={`border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center cursor-pointer transition-all ${
-          dragActive
-            ? 'border-primary-500 bg-primary-500/10'
-            : 'border-slate-800 hover:border-slate-700 bg-slate-850/50 hover:bg-slate-850'
+        onClick={() => !processing && inputRef.current?.click()}
+        className={`border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center transition-all ${
+          processing
+            ? 'border-primary-500/50 bg-slate-850/80 cursor-wait'
+            : dragActive
+            ? 'border-primary-500 bg-primary-500/10 cursor-pointer scale-[1.01]'
+            : 'border-slate-800 hover:border-slate-700 bg-slate-850/60 hover:bg-slate-850 cursor-pointer'
         }`}
       >
         <input
           ref={inputRef}
           type="file"
           accept=".zip,.json"
+          disabled={processing}
           onChange={(e) => e.target.files && handleFileSelected(e.target.files[0])}
           className="hidden"
         />
 
-        <div className="w-16 h-16 rounded-2xl bg-primary-500/15 border border-primary-500/30 flex items-center justify-center mb-4 text-primary-400">
-          <UploadCloud className="w-8 h-8" />
-        </div>
+        {processing ? (
+          <div className="text-center space-y-4 max-w-md w-full">
+            <div className="w-14 h-14 rounded-2xl bg-primary-500/20 text-primary-400 border border-primary-500/30 flex items-center justify-center mx-auto animate-pulse">
+              <Sparkles className="w-7 h-7 animate-spin" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-white">Processing Automation Package</h3>
+              <p className="text-xs text-slate-400 mt-1 font-mono">{statusText}</p>
+            </div>
+            {/* Progress bar */}
+            <div className="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden border border-slate-700">
+              <div
+                className="bg-gradient-to-r from-blue-500 to-teal-400 h-2.5 rounded-full transition-all duration-300"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="w-16 h-16 rounded-2xl bg-primary-500/15 text-primary-400 border border-primary-500/30 flex items-center justify-center mb-4">
+              <UploadCloud className="w-8 h-8" />
+            </div>
 
-        <h3 className="text-base font-semibold text-slate-200">
-          {uploading ? 'Validating and Uploading...' : 'Drop A360 ZIP / JSON here'}
-        </h3>
-        <p className="text-xs text-slate-400 mt-1.5 text-center max-w-sm">
-          Supports Automation Anywhere A360 multi-bot .zip packages or standalone taskbot .json files.
-        </p>
-        <div className="mt-4 flex items-center gap-2">
-          <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
-            .zip
-          </span>
-          <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
-            .json
-          </span>
-          <span className="text-xs text-slate-500">Max 100MB</span>
-        </div>
+            <h3 className="text-base font-bold text-white mb-1">
+              Select or Drop A360 File (.zip or .json)
+            </h3>
+            <p className="text-xs text-slate-400 text-center max-w-sm mb-4">
+              Upload an Automation Anywhere A360 automation package (.zip) or taskbot (.json).
+            </p>
+
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700">
+                <FileArchive className="w-3.5 h-3.5 text-amber-400" />
+                A360 Package (.zip)
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700">
+                <FileCode className="w-3.5 h-3.5 text-blue-400" />
+                Taskbot (.json)
+              </span>
+            </div>
+
+            <button
+              type="button"
+              className="mt-6 px-5 py-2 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-semibold text-xs shadow-md shadow-primary-500/20 transition-all"
+            >
+              Browse Files
+            </button>
+          </>
+        )}
       </div>
 
-      {/* Error alert */}
+      {/* Error message */}
       {error && (
-        <div className="p-4 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-3">
-          <AlertCircle className="w-4 h-4 shrink-0" />
+        <div className="p-4 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center gap-3 text-rose-300 text-xs">
+          <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
           <span>{error}</span>
         </div>
       )}
 
-      {/* Uploaded Package Inventory Summary */}
-      {uploadedJob && (
-        <div className="p-6 rounded-2xl bg-slate-850 border border-slate-800 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                <CheckCircle className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="text-sm font-semibold text-slate-200">{uploadedJob.filename}</h4>
-                <p className="text-xs text-slate-400">
-                  {(uploadedJob.file_size / 1024).toFixed(1)} KB • {uploadedJob.file_type.toUpperCase()} Archive
-                </p>
-              </div>
-            </div>
-
-            <button
-              onClick={startAnalysis}
-              disabled={analyzing}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-semibold text-xs shadow-lg shadow-primary-500/25 transition-all disabled:opacity-50"
-            >
-              <Play className="w-4 h-4 fill-white" />
-              <span>{analyzing ? 'Starting Pipeline...' : 'Start Analysis'}</span>
-            </button>
+      {/* Clean Workflow Explanation */}
+      <div className="p-5 rounded-xl bg-slate-850 border border-slate-800 space-y-3">
+        <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+          How It Works
+        </h4>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-1">
+            <span className="font-bold text-white flex items-center gap-1.5">
+              <span className="w-4 h-4 rounded-full bg-blue-500/20 text-blue-400 inline-flex items-center justify-center text-[10px]">1</span>
+              Preprocess & Clean
+            </span>
+            <p className="text-slate-400 text-[11px]">
+              Safely unzips, strips logging/comments, and preserves all disabled actions with step locations.
+            </p>
           </div>
 
-          {/* Inventory Breakdown */}
-          <div>
-            <h5 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-              Discovered Package Inventory ({uploadedJob.inventory.length} items)
-            </h5>
-            <div className="max-h-48 overflow-y-auto space-y-1.5 pr-2">
-              {uploadedJob.inventory.map((item, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-xs"
-                >
-                  <div className="flex items-center gap-2">
-                    {item.file_type === 'Taskbot' ? (
-                      <FileCode className="w-4 h-4 text-blue-400" />
-                    ) : (
-                      <FileArchive className="w-4 h-4 text-slate-400" />
-                    )}
-                    <span className="font-mono text-slate-200">{item.name}</span>
-                    {item.is_main_task && (
-                      <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-primary-500/20 text-primary-400 border border-primary-500/30">
-                        Main Taskbot
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-3 text-slate-400">
-                    <span className="text-[11px] px-2 py-0.5 rounded bg-slate-800">{item.file_type}</span>
-                    <span className="text-[11px] font-mono">{(item.size / 1024).toFixed(1)} KB</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+          <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-1">
+            <span className="font-bold text-white flex items-center gap-1.5">
+              <span className="w-4 h-4 rounded-full bg-purple-500/20 text-purple-400 inline-flex items-center justify-center text-[10px]">2</span>
+              Parse & Map Actions
+            </span>
+            <p className="text-slate-400 text-[11px]">
+              Maps all 274 actions to Power Automate (Desktop or Cloud) based on the official reference mapping workbook.
+            </p>
+          </div>
+
+          <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-1">
+            <span className="font-bold text-white flex items-center gap-1.5">
+              <span className="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-400 inline-flex items-center justify-center text-[10px]">3</span>
+              Excel Blueprint
+            </span>
+            <p className="text-slate-400 text-[11px]">
+              Calculates migration complexity (&lt;200 Easy, 200-400 Medium, &gt;400 Hard) and exports ready-to-use Excel.
+            </p>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };

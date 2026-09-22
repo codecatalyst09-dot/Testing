@@ -91,5 +91,26 @@ def download_single_output(job_id: str, filename: str):
         media_type = "text/markdown"
     elif target_file.suffix == ".html":
         media_type = "text/html"
+    elif target_file.suffix == ".xlsx":
+        media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
     return FileResponse(path=target_file, filename=target_file.name, media_type=media_type)
+
+@router.get("/jobs/{job_id}/download-excel")
+def download_migration_excel(job_id: str):
+    """
+    Directly downloads the definitive step-by-step Excel migration blueprint.
+    """
+    job_dir = PipelineOrchestrator.get_job_dir(job_id)
+    excel_file = job_dir / "outputs" / "AA_to_PowerAutomate_Migration_Plan.xlsx"
+    if not excel_file.exists():
+        excel_file = job_dir / "reports" / "AA_to_PowerAutomate_Migration_Plan.xlsx"
+
+    if not excel_file.exists():
+        raise HTTPException(status_code=404, detail="Migration Excel blueprint not found or not yet generated.")
+
+    return FileResponse(
+        path=excel_file,
+        filename="AA_to_PowerAutomate_Migration_Plan.xlsx",
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )

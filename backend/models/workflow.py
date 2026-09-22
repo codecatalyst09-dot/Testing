@@ -38,6 +38,8 @@ class StatisticsModel(BaseModel):
     totalWorkflows: int = 1
     totalTasks: int = 0
     totalActions: int = 0
+    totalStepsEvaluated: int = 0
+    migrationComplexity: str = "Easy"
     cloudActions: int = 0
     desktopActions: int = 0
     hybridActions: int = 0

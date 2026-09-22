@@ -11,6 +11,15 @@ class DisabledActionModel(BaseModel):
     location: Optional[str] = None
     parent: Optional[str] = None
     reason: str = "Action was disabled in A360"
+    aaPackage: Optional[str] = ""
+    aaAction: Optional[str] = ""
+    aaDescription: Optional[str] = ""
+    targetPlatform: Optional[str] = "Power Automate Desktop"
+    padCategory: Optional[str] = ""
+    padAction: Optional[str] = ""
+    cloudAction: Optional[str] = ""
+    recommendedAction: Optional[str] = ""
+    migrationNotes: Optional[str] = ""
 
 class ActionModel(BaseModel):
     id: str
@@ -30,12 +39,23 @@ class ActionModel(BaseModel):
     sourcePath: str = ""
     cloudOrDesktop: str = "Manual Review"  # Cloud, Desktop, Hybrid, Manual Review
     powerAutomateAction: str = "Manual Review Required"
-    migrationStrategy: str = "Manual Review"  # Direct Mapping, Equivalent Connector, Cloud Replacement, Desktop Replacement, Hybrid Implementation, Custom API, Custom Script, Manual Review, Not Supported
+    migrationStrategy: str = "Manual Review"
     migrationComplexity: str = "Medium"  # Low, Medium, High
     confidence: float = 0.50
     reason: str = ""
     manualSteps: List[str] = Field(default_factory=list)
     dependencies: List[str] = Field(default_factory=list)
+    # Reference workbook mapping fields
+    aaPackage: Optional[str] = ""
+    aaAction: Optional[str] = ""
+    aaDescription: Optional[str] = ""
+    padCategory: Optional[str] = ""
+    padAction: Optional[str] = ""
+    cloudAction: Optional[str] = ""
+    migrationNotes: Optional[str] = ""
+    status: str = "Active"  # Active or Disabled
+    isDisabled: bool = False
+    disabledReason: Optional[str] = None
 
 class ActionAnalysisResponse(BaseModel):
     total_actions: int

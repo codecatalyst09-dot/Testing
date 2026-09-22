@@ -1,9 +1,11 @@
 from typing import Dict, Any, Optional, List
 from backend.migration.classifier import ActionClassifier
+from backend.migration.excel_mapping_db import ExcelMappingDB
 
 class MappingEngine:
     """
     RPA Migration Mapping Engine mapping A360 actions to Power Automate specifications.
+    Authoritatively backed by Mapping/AA_to_PowerAutomate_Action_Mapping.xlsx.
     """
 
     @classmethod
@@ -20,10 +22,15 @@ class MappingEngine:
         cmd_lower = cmd.lower()
         op_lower = (operation or "").lower().strip()
 
+        # Step 0: Consult official Excel Mapping Database
+        db_mapping = ExcelMappingDB.get_instance().find_mapping(cmd, operation)
+
         # Step 1: Classify Platform
         platform, reason, confidence = ActionClassifier.classify_action(
             cmd, operation, attrs, context_has_cloud, context_has_desktop
         )
+        if db_mapping.get("platform") and platform != "Hybrid":
+            platform = db_mapping["platform"]
 
         target_action = "Manual Review Required"
         strategy = "Manual Review"
@@ -221,6 +228,12 @@ class MappingEngine:
                 "Pass input variables to desktop flow and configure output variable capture"
             ]
 
+        # If target action wasn't resolved by custom rule, use official database recommendation
+        if target_action in ("Manual Review Required", f"Cloud Flow ({cmd})", f"PAD Desktop Action ({cmd})") and db_mapping.get("recommended_action"):
+            target_action = db_mapping["recommended_action"]
+            if db_mapping.get("migration_notes"):
+                reason = db_mapping["migration_notes"]
+
         return {
             "source": "A360",
             "targetPlatform": platform,
@@ -230,5 +243,13 @@ class MappingEngine:
             "confidence": round(confidence, 2),
             "reason": reason,
             "manualSteps": manual_steps,
-            "dependencies": dependencies
+            "dependencies": dependencies,
+            # Official Excel mapping fields
+            "aaPackage": db_mapping.get("aa_package") or cmd,
+            "aaAction": db_mapping.get("aa_action") or (operation or "Execute"),
+            "aaDescription": db_mapping.get("aa_description") or "",
+            "padCategory": db_mapping.get("pad_category") or "",
+            "padAction": db_mapping.get("pad_action") or "",
+            "cloudAction": db_mapping.get("cloud_action") or "",
+            "migrationNotes": db_mapping.get("migration_notes") or ""
         }

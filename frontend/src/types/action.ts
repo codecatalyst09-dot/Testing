@@ -41,6 +41,16 @@ export interface ActionModel {
   reason: string;
   manualSteps: string[];
   dependencies: string[];
+  aaPackage?: string;
+  aaAction?: string;
+  aaDescription?: string;
+  padCategory?: string;
+  padAction?: string;
+  cloudAction?: string;
+  migrationNotes?: string;
+  status?: 'ACTIVE' | 'DISABLED' | string;
+  isDisabled?: boolean;
+  disabledReason?: string | null;
 }
 
 export interface DisabledActionModel {
@@ -53,6 +63,15 @@ export interface DisabledActionModel {
   location?: string | null;
   parent?: string | null;
   reason: string;
+  aaPackage?: string;
+  aaAction?: string;
+  aaDescription?: string;
+  targetPlatform?: string;
+  padCategory?: string;
+  padAction?: string;
+  cloudAction?: string;
+  recommendedAction?: string;
+  migrationNotes?: string;
 }
 
 export interface ActionAnalysisResponse {

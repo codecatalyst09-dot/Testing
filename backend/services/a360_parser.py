@@ -4,6 +4,7 @@ from pathlib import Path
 from backend.models.workflow import WorkflowModel, WorkflowInfo, TaskModel, StatisticsModel
 from backend.models.action import ActionModel, DisabledActionModel
 from backend.migration.mapping_engine import MappingEngine
+from backend.migration.excel_mapping_db import ExcelMappingDB
 from backend.services.variable_analyzer import VariableAnalyzer
 from backend.services.task_analyzer import TaskAnalyzer
 from backend.services.dependency_analyzer import DependencyAnalyzer
@@ -90,8 +91,17 @@ class A360Parser:
             migrationComplexity=mapped["complexity"],
             confidence=mapped["confidence"],
             reason=mapped["reason"],
-            manualSteps=mapped["manualSteps"],
-            dependencies=mapped["dependencies"]
+            dependencies=mapped["dependencies"],
+            aaPackage=mapped.get("aaPackage", command),
+            aaAction=mapped.get("aaAction", operation or "Execute"),
+            aaDescription=mapped.get("aaDescription", ""),
+            padCategory=mapped.get("padCategory", ""),
+            padAction=mapped.get("padAction", ""),
+            cloudAction=mapped.get("cloudAction", ""),
+            migrationNotes=mapped.get("migrationNotes", ""),
+            status="Active",
+            isDisabled=False,
+            disabledReason=None
         )
 
         self.actions.append(action_obj)
@@ -170,21 +180,35 @@ class A360Parser:
                     a.reason = mapped["reason"]
                     a.dependencies = mapped["dependencies"]
 
-        # Convert disabled actions to models
-        disabled_models = [
-            DisabledActionModel(
-                task=da.get("task", "MainTask"),
-                file=da.get("file", ""),
-                originalStep=da.get("originalStep", 0),
-                command=da.get("command", "Unknown"),
-                action=da.get("action", "Execute"),
-                attributes=da.get("attributes", {}),
-                location=da.get("location"),
-                parent=da.get("parent"),
-                reason=da.get("reason", "Action was disabled in A360")
+        # Convert disabled actions to models with official Excel mapping
+        db_instance = ExcelMappingDB.get_instance()
+        disabled_models = []
+        for da in disabled_actions:
+            cmd = da.get("command", "Unknown")
+            act = da.get("action", "Execute")
+            d_map = db_instance.find_mapping(cmd, act)
+            disabled_models.append(
+                DisabledActionModel(
+                    task=da.get("task", "MainTask"),
+                    file=da.get("file", ""),
+                    originalStep=da.get("originalStep", 0),
+                    command=cmd,
+                    action=act,
+                    attributes=da.get("attributes", {}),
+                    location=da.get("location"),
+                    parent=da.get("parent"),
+                    reason=da.get("reason", "Action was disabled in A360"),
+                    aaPackage=d_map.get("aa_package", cmd),
+                    aaAction=d_map.get("aa_action", act),
+                    aaDescription=d_map.get("aa_description", ""),
+                    targetPlatform=d_map.get("platform", "Power Automate Desktop"),
+                    padCategory=d_map.get("pad_category", ""),
+                    padAction=d_map.get("pad_action", ""),
+                    cloudAction=d_map.get("cloud_action", ""),
+                    recommendedAction=d_map.get("recommended_action", ""),
+                    migrationNotes=d_map.get("migration_notes", "")
+                )
             )
-            for da in disabled_actions
-        ]
 
         # Extract variables across all tasks
         all_variables = []
@@ -211,6 +235,20 @@ class A360Parser:
 
         # Calculate statistics
         total_actions = len(self.actions)
+        total_disabled = len(disabled_models)
+        total_steps_eval = total_actions + total_disabled
+
+        # Exact Complexity Rule from User:
+        # > 400 steps: Hard
+        # 200 - 400 steps: Medium
+        # < 200 steps: Easy
+        if total_steps_eval > 400:
+            overall_complexity = "Hard"
+        elif total_steps_eval >= 200:
+            overall_complexity = "Medium"
+        else:
+            overall_complexity = "Easy"
+
         cloud_count = sum(1 for a in self.actions if a.cloudOrDesktop == "Power Automate Cloud")
         desktop_count = sum(1 for a in self.actions if a.cloudOrDesktop == "Power Automate Desktop")
         hybrid_count = sum(1 for a in self.actions if a.cloudOrDesktop == "Hybrid")
@@ -240,13 +278,15 @@ class A360Parser:
             totalWorkflows=1,
             totalTasks=len(tasks),
             totalActions=total_actions,
+            totalStepsEvaluated=total_steps_eval,
+            migrationComplexity=overall_complexity,
             cloudActions=cloud_count,
             desktopActions=desktop_count,
             hybridActions=hybrid_count,
             manualReviewActions=manual_count,
             totalVariables=len(all_variables),
             totalSubtasks=max(0, len(tasks) - 1),
-            totalDisabledActions=len(disabled_models),
+            totalDisabledActions=total_disabled,
             platformDistribution=platform_dist,
             complexityDistribution=complexity_dist
         )
