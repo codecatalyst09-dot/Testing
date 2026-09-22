@@ -80,6 +80,12 @@ class MappingEngine:
                     complexity = "Low"
                     confidence = 0.94
                     reason = "Direct mapping to PAD 'Write to Excel worksheet'."
+                elif "runmacro" in op_lower or "macro" in op_lower:
+                    target_action = "Run Excel macro"
+                    strategy = "Direct Mapping"
+                    complexity = "Medium"
+                    confidence = 0.94
+                    reason = "Direct mapping to PAD 'Run Excel macro'."
                 else:
                     target_action = "Launch Excel / Excel Operations"
                     strategy = "Direct Mapping"
@@ -87,7 +93,28 @@ class MappingEngine:
                     confidence = 0.92
                     reason = "Local desktop Excel manipulation mapped to PAD Excel action group."
 
-            elif "browser" in cmd_lower or "web" in cmd_lower or "recorder" in cmd_lower or "capture" in cmd_lower:
+            elif "word" in cmd_lower:
+                dependencies = ["Microsoft Word (Desktop)", "Power Automate Desktop Agent"]
+                strategy = "Direct Mapping"
+                complexity = "Low"
+                confidence = 0.94
+                if "open" in op_lower or "launch" in op_lower:
+                    target_action = "Launch Word"
+                    reason = "Direct mapping to PAD 'Launch Word' action."
+                elif "save" in op_lower:
+                    target_action = "Save Word document"
+                    reason = "Direct mapping to PAD 'Save Word document' action."
+                elif "close" in op_lower:
+                    target_action = "Close Word"
+                    reason = "Direct mapping to PAD 'Close Word' action."
+                elif "replace" in op_lower:
+                    target_action = "Find and replace text in Word document"
+                    reason = "Direct mapping to PAD 'Find and replace text in Word document'."
+                else:
+                    target_action = "Launch Word / Word Operations"
+                    reason = "Desktop Word automation mapped to PAD Word actions."
+
+            elif "browser" in cmd_lower or "webautomation" in cmd_lower or "recorder" in cmd_lower or "capture" in cmd_lower or "objectcloning" in cmd_lower:
                 dependencies = ["Microsoft Edge or Google Chrome", "Power Automate Desktop Browser Extension"]
                 if "open" in op_lower or "launch" in op_lower or "navigate" in op_lower:
                     target_action = "Launch new Microsoft Edge"
@@ -125,7 +152,7 @@ class MappingEngine:
                 ]
                 strategy = "Desktop Replacement"
                 complexity = "High"
-                confidence = 0.92
+                confidence = 0.94
                 if "connect" in op_lower or "logon" in op_lower:
                     target_action = "SAP GUI Automation / Connect to SAP"
                     reason = "Connect to SAP session using PAD SAP GUI Automation."
@@ -141,6 +168,12 @@ class MappingEngine:
                 elif "gettext" in op_lower or "read" in op_lower:
                     target_action = "Get details of element on SAP window"
                     reason = "Extract SAP UI text field into flow variable."
+                elif "selectitem" in op_lower:
+                    target_action = "Select menu item in SAP window"
+                    reason = "Select menu or toolbar item in SAP window."
+                elif "close" in op_lower:
+                    target_action = "Close SAP session"
+                    reason = "Gracefully terminate SAP GUI session."
                 else:
                     target_action = "SAP GUI Automation"
                     reason = "A360 SAP actions map to Power Automate Desktop SAP GUI action group."
@@ -156,6 +189,9 @@ class MappingEngine:
                 elif "process" in op_lower or "get" in op_lower:
                     target_action = "Process work queue items"
                     reason = "Directly maps to PAD Work queues 'Process work queue items' action."
+                elif "update" in op_lower or "status" in op_lower:
+                    target_action = "Update work queue item status"
+                    reason = "Directly maps to PAD Work queues 'Update work queue item status'."
                 else:
                     target_action = "Manage work queue items"
                     reason = "Directly maps to PAD Work queues module."
@@ -172,10 +208,50 @@ class MappingEngine:
                 target_action = "Run PowerShell script / Run VBScript / Run Python script"
                 strategy = "Custom Script"
                 complexity = "Medium"
-                confidence = 0.92
+                confidence = 0.94
                 dependencies = ["PowerShell/VBScript/Python Runtime"]
                 reason = "Local script execution maps to PAD scripting actions."
                 manual_steps = ["Port script parameters into PAD variable syntax."]
+
+            elif "window" in cmd_lower:
+                target_action = "Focus window / Set window state / Close window"
+                strategy = "Direct Mapping"
+                complexity = "Low"
+                confidence = 0.95
+                dependencies = ["Power Automate Desktop Agent"]
+                reason = "Desktop window focus and state management."
+
+            elif "mouse" in cmd_lower or "keystroke" in cmd_lower:
+                target_action = "Send keys / Move mouse / Click"
+                strategy = "Direct Mapping"
+                complexity = "Low"
+                confidence = 0.92
+                dependencies = ["Power Automate Desktop Agent"]
+                reason = "Desktop peripheral simulation."
+
+            elif "terminal" in cmd_lower or "mainframe" in cmd_lower:
+                target_action = "Open terminal connection / Send terminal command"
+                strategy = "Desktop Replacement"
+                complexity = "High"
+                confidence = 0.92
+                dependencies = ["Terminal Emulation (3270/5250/VT100)"]
+                reason = "Mainframe and terminal emulation requires PAD terminal actions."
+
+            elif "zip" in cmd_lower or "archive" in cmd_lower:
+                target_action = "ZIP files / Unzip files"
+                strategy = "Direct Mapping"
+                complexity = "Low"
+                confidence = 0.95
+                dependencies = ["Power Automate Desktop Agent"]
+                reason = "Local file archive compression and extraction."
+
+            elif "cryptography" in cmd_lower:
+                target_action = "Encrypt text with AES / Hash text"
+                strategy = "Direct Mapping"
+                complexity = "Low"
+                confidence = 0.94
+                dependencies = ["Power Automate Desktop Agent"]
+                reason = "Local cryptographic encryption and hashing."
 
             else:
                 target_action = f"PAD Desktop Action ({cmd})"
@@ -190,16 +266,19 @@ class MappingEngine:
                 target_action = "HTTP"
                 strategy = "Direct Mapping"
                 complexity = "Low"
-                confidence = 0.96
+                confidence = 0.97
                 dependencies = ["Power Automate Premium (HTTP Connector)"]
                 reason = "A360 REST/HTTP web service calls map cleanly to the Cloud Flow HTTP action."
                 manual_steps = ["Review authentication headers and API endpoint URL."]
 
             elif "email" in cmd_lower or "mail" in cmd_lower:
-                target_action = "Office 365 Outlook - Send an email (V2)"
+                if "get" in op_lower or "read" in op_lower or "latest" in op_lower:
+                    target_action = "Office 365 Outlook - Get emails (V3)"
+                else:
+                    target_action = "Office 365 Outlook - Send an email (V2)"
                 strategy = "Equivalent Connector"
                 complexity = "Low"
-                confidence = 0.95
+                confidence = 0.96
                 dependencies = ["Office 365 Outlook Connection"]
                 reason = "A360 email sending replaces legacy SMTP with native Office 365 Outlook connector."
                 manual_steps = ["Connect service account to Office 365 Outlook connector."]
@@ -208,37 +287,144 @@ class MappingEngine:
                 target_action = "SharePoint Online Connector"
                 strategy = "Equivalent Connector"
                 complexity = "Low"
-                confidence = 0.95
+                confidence = 0.96
                 dependencies = ["SharePoint Connection"]
                 reason = "Native cloud integration for SharePoint lists and document libraries."
+
+            elif "onedrive" in cmd_lower:
+                target_action = "OneDrive for Business Connector"
+                strategy = "Equivalent Connector"
+                complexity = "Low"
+                confidence = 0.96
+                dependencies = ["OneDrive Connection"]
+                reason = "Native cloud file storage access and sync."
+
+            elif "teams" in cmd_lower:
+                target_action = "Microsoft Teams Connector"
+                strategy = "Equivalent Connector"
+                complexity = "Low"
+                confidence = 0.96
+                dependencies = ["Microsoft Teams Connection"]
+                reason = "Post message or adaptive card to Teams channel/chat."
 
             elif "if" in cmd_lower or "condition" in cmd_lower:
                 target_action = "Condition"
                 strategy = "Direct Mapping"
                 complexity = "Low"
-                confidence = 0.97
+                confidence = 0.98
                 reason = "A360 conditional logic directly maps to Power Automate Cloud Condition branching."
 
-            elif "loop" in cmd_lower:
-                target_action = "Apply to each / Do until"
+            elif "loop" in cmd_lower or "while" in cmd_lower:
+                if "while" in op_lower:
+                    target_action = "Do until"
+                else:
+                    target_action = "Apply to each"
                 strategy = "Direct Mapping"
                 complexity = "Low"
-                confidence = 0.95
+                confidence = 0.98
                 reason = "A360 loop blocks directly map to Cloud 'Apply to each' iteration or 'Do until' loops."
 
             elif "assign" in cmd_lower or "variable" in cmd_lower:
                 target_action = "Set variable / Initialize variable"
                 strategy = "Direct Mapping"
                 complexity = "Low"
-                confidence = 0.97
+                confidence = 0.98
                 reason = "Variable definition and assignment directly maps to standard Cloud Flow variable actions."
 
-            elif "delay" in cmd_lower:
+            elif "delay" in cmd_lower or "wait" in cmd_lower:
                 target_action = "Delay"
                 strategy = "Direct Mapping"
                 complexity = "Low"
                 confidence = 0.98
                 reason = "Direct 1-to-1 equivalent Delay action in Cloud Flows."
+
+            elif "string" in cmd_lower:
+                if "substring" in op_lower:
+                    target_action = "substring() expression in Compose"
+                elif "replace" in op_lower:
+                    target_action = "replace() expression in Compose"
+                elif "split" in op_lower:
+                    target_action = "split() expression in Compose"
+                elif "concat" in op_lower or "append" in op_lower:
+                    target_action = "concat() expression in Compose"
+                else:
+                    target_action = "Compose / String functions"
+                strategy = "Direct Mapping"
+                complexity = "Low"
+                confidence = 0.96
+                reason = "Cloud string expressions (concat, substring, replace, split, length, toUpper, toLower)."
+
+            elif "number" in cmd_lower:
+                if "subtract" in op_lower or "sub" in op_lower:
+                    target_action = "sub() expression in Compose"
+                elif "add" in op_lower:
+                    target_action = "add() expression in Compose"
+                elif "round" in op_lower:
+                    target_action = "round() expression in Compose"
+                elif "random" in op_lower:
+                    target_action = "rand() expression in Compose"
+                else:
+                    target_action = "Compose / Math expressions"
+                strategy = "Direct Mapping"
+                complexity = "Low"
+                confidence = 0.97
+                reason = "Cloud math expressions (add, sub, mul, div, round, rand, formatNumber)."
+
+            elif "datetime" in cmd_lower or "date" in cmd_lower:
+                target_action = "Convert time zone / Format DateTime"
+                strategy = "Direct Mapping"
+                complexity = "Low"
+                confidence = 0.96
+                reason = "Cloud datetime expressions and timezone conversion."
+
+            elif "boolean" in cmd_lower:
+                target_action = "Initialize variable (Boolean)"
+                strategy = "Direct Mapping"
+                complexity = "Low"
+                confidence = 0.96
+                reason = "Cloud boolean variable initialization."
+
+            elif "list" in cmd_lower or "array" in cmd_lower:
+                target_action = "Initialize variable (Array) / Append to array variable"
+                strategy = "Direct Mapping"
+                complexity = "Low"
+                confidence = 0.95
+                reason = "Cloud array collection management."
+
+            elif "dictionary" in cmd_lower or "map" in cmd_lower:
+                target_action = "Initialize variable (Object) / Compose"
+                strategy = "Direct Mapping"
+                complexity = "Low"
+                confidence = 0.95
+                reason = "Cloud key-value dictionary management."
+
+            elif "json" in cmd_lower:
+                target_action = "Parse JSON / Compose"
+                strategy = "Direct Mapping"
+                complexity = "Low"
+                confidence = 0.96
+                reason = "In-memory cloud JSON parsing and schema validation."
+
+            elif "xml" in cmd_lower:
+                target_action = "XPath / Compose"
+                strategy = "Direct Mapping"
+                complexity = "Low"
+                confidence = 0.92
+                reason = "Cloud XML content transformation and XPath query."
+
+            elif "errorhandler" in cmd_lower or "try" in cmd_lower:
+                target_action = "Scope (Try-Catch-Finally)"
+                strategy = "Direct Mapping"
+                complexity = "Low"
+                confidence = 0.96
+                reason = "Cloud Scope action with Configure Run After failure handling."
+
+            elif "dataverse" in cmd_lower:
+                target_action = "Microsoft Dataverse"
+                strategy = "Direct Mapping"
+                complexity = "Low"
+                confidence = 0.96
+                reason = "CRUD operations on Dataverse entities."
 
             else:
                 target_action = f"Cloud Flow ({cmd})"

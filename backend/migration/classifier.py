@@ -33,21 +33,21 @@ class ActionClassifier:
             _, reason, conf = hybrid_match
             return "Hybrid", reason, conf
 
-        # 2. Check Desktop Rules
-        desktop_match = match_desktop_rule(cmd_clean, action, attrs)
-        if desktop_match:
-            _, reason, conf = desktop_match
-            return "Power Automate Desktop", reason, conf
-
-        # 3. Check Cloud Rules
+        # 2. Check Cloud Rules FIRST (Cloud-First Principle)
         cloud_match = match_cloud_rule(cmd_clean, action, attrs)
         if cloud_match:
             _, reason, conf = cloud_match
             return "Power Automate Cloud", reason, conf
 
-        # 4. If command is unknown or unsupported, follow Section 30 Unknown Command Policy
+        # 3. If Cloud is not possible, check Desktop Rules SECOND (Desktop Fallback)
+        desktop_match = match_desktop_rule(cmd_clean, action, attrs)
+        if desktop_match:
+            _, reason, conf = desktop_match
+            return "Power Automate Desktop", reason, conf
+
+        # 4. If command cannot be understood or mapped to Cloud or Desktop -> Manual Review
         return (
             "Manual Review",
-            f"Command '{cmd_clean}' has no deterministic Power Automate mapping rule. Requires RPA architect review.",
-            0.30
+            f"Action '{cmd_clean}' has no deterministic Power Automate Cloud connector or Desktop equivalent. Requires RPA architect manual review.",
+            0.25
         )
