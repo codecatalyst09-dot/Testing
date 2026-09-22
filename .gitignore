@@ -10,6 +10,11 @@ ENV/
 .venv
 .pytest_cache/
 
+# Environment files
+.env
+.env.*
+!.env.example
+
 # Node / Frontend
 node_modules/
 dist/
