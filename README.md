@@ -124,7 +124,7 @@ A production-ready, full-stack enterprise web application that analyzes Automati
 │   │   └── migration_plan.py       # Target Cloud and Desktop Flow blueprints
 │   ├── models/                     # Pydantic schemas (V2)
 │   ├── db/                         # SQLite database with SQLAlchemy ORM
-│   ├── ai/                         # Pluggable AI explainer architecture
+│   ├── ai/                         # Deterministic process explainer architecture
 │   ├── utils/                      # Security (safe extraction) and structured logger
 │   └── tests/                      # Automated pytest test suite
 │

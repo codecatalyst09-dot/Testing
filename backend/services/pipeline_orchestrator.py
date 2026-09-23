@@ -191,7 +191,7 @@ class PipelineOrchestrator:
             )
             cls.update_job_stage(job_id, PipelineStage.MAPPING_COMPLETE)
 
-            # Generate AI Explanation & Multi-bot architecture overview
+            # Generate deterministic workflow architecture overview & process explanation
             from backend.ai.explainer import AIWorkflowExplainer
             from backend.models.workflow import WorkflowExplanation
             try:

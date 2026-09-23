@@ -413,11 +413,6 @@ export const Dashboard: React.FC = () => {
               <div>
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
                   Automation Overview & Multi-Bot Architecture
-                  {subBotsOverview.ai_enhanced && (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center gap-1">
-                      <Sparkles className="w-3 h-3" /> GPT-4.1 Powered
-                    </span>
-                  )}
                 </h3>
                 <p className="text-[11px] text-slate-400">
                   {subBotsOverview.has_sub_bots
@@ -854,7 +849,7 @@ export const Dashboard: React.FC = () => {
                   <h3 className="text-base font-black text-white flex items-center gap-2.5">
                     Power Automate Code Generator
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-500/20 text-violet-300 border border-violet-500/30">
-                      Deterministic / No-LLM
+                      Deterministic Rule Engine
                     </span>
                   </h3>
                   <p className="text-xs text-slate-400">
