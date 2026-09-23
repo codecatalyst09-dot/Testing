@@ -3,7 +3,9 @@ import openpyxl
 from pathlib import Path
 from typing import Dict, Any, Optional, Tuple, List
 
-MAPPING_FILE_PATH = Path(__file__).parent.parent.parent / "Mapping" / "AA_to_PowerAutomate_Action_Mapping.xlsx"
+from backend.utils.paths import get_mapping_file_path
+
+MAPPING_FILE_PATH = get_mapping_file_path()
 
 class ExcelMappingDB:
     _instance = None

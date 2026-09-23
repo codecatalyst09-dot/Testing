@@ -9,6 +9,9 @@ venv/
 ENV/
 .venv
 .pytest_cache/
+build/
+dist/
+*.spec.bak
 
 # Environment files
 .env

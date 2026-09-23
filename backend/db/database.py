@@ -2,9 +2,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from pathlib import Path
 
+from backend.utils.paths import get_storage_dir
+
 # Local SQLite storage path
-DB_DIR = Path(__file__).parent.parent / "storage"
-DB_DIR.mkdir(parents=True, exist_ok=True)
+DB_DIR = get_storage_dir()
 SQL_DB_PATH = DB_DIR / "analyzer.db"
 
 SQLALCHEMY_DATABASE_URL = f"sqlite:///{SQL_DB_PATH.as_posix()}"

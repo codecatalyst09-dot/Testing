@@ -67,8 +67,9 @@ def health_check():
 from pathlib import Path
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from backend.utils.paths import get_frontend_dist_dir
 
-frontend_dist = Path(__file__).parent.parent / "frontend" / "dist"
+frontend_dist = get_frontend_dist_dir()
 if frontend_dist.exists():
     assets_dir = frontend_dist / "assets"
     if assets_dir.exists():

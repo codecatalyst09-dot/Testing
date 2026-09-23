@@ -19,8 +19,9 @@ from backend.models.migration import MigrationPlanModel
 from backend.utils.logger import logger
 from backend.db.database import SessionLocal
 from backend.db.models import JobRecord, AnalysisResultRecord
+from backend.utils.paths import get_storage_dir
 
-STORAGE_BASE = Path(__file__).parent.parent / "storage" / "jobs"
+STORAGE_BASE = get_storage_dir() / "jobs"
 
 class PipelineOrchestrator:
     @staticmethod

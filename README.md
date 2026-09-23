@@ -239,3 +239,25 @@ When an analysis is completed, the system generates 10 output files and bundles 
 | 8 | `migration_report.md` | Comprehensive Markdown report |
 | 9 | `migration_report.html` | Self-contained, styled executive HTML report (printable to PDF) |
 | 10| `migration_summary.json`| High-level executive statistics and effort estimates |
+
+---
+
+## Building Standalone Windows Executable (.exe)
+
+You can package the entire application (Backend + Database + Mapping Engine + React Frontend) into a single standalone `.exe` that runs completely offline with zero installation required on client machines:
+
+### 1-Click Automated Build
+Double-click `build_exe.bat` or run:
+```powershell
+python build_exe.py
+```
+
+### What this does:
+1. Compiles the React + Vite frontend into static production assets (`frontend/dist`).
+2. Bundles Uvicorn, FastAPI, SQLite engine, Excel mapping database, and frontend assets into a single binary via PyInstaller.
+3. Produces `dist/A360_to_PowerAutomate_Migration_Analyzer.exe` (~54 MB).
+
+### Running the Executable:
+- Simply double-click `A360_to_PowerAutomate_Migration_Analyzer.exe`.
+- The application starts its embedded local web server, automatically opens your default web browser to `http://localhost:8000`, and creates a local `storage/` directory beside the `.exe` so all uploaded workflows and analysis jobs persist across restarts.
+
