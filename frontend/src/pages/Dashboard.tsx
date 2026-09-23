@@ -14,6 +14,7 @@ import {
   Clock,
   Download,
   FileSpreadsheet,
+  FileArchive,
   Search,
   CheckCircle2,
   XCircle,
@@ -371,18 +372,17 @@ export const Dashboard: React.FC = () => {
           </p>
         </div>
 
-        {/* Primary Code Generation & Download Actions */}
+        {/* Primary Download Actions */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          <button
-            onClick={handleOpenCodeModal}
-            className="flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl bg-gradient-to-r from-violet-600 via-indigo-600 to-primary-600 hover:from-violet-500 hover:via-indigo-500 hover:to-primary-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition-all border border-indigo-400/40 hover:scale-[1.02] active:scale-[0.98] group"
+          <a
+            href={api.getDownloadPreprocessedUrl(currentJobId)}
+            download={`A360_Preprocessed_${currentJobId}.zip`}
+            className="flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 hover:from-blue-500 hover:via-indigo-500 hover:to-cyan-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/25 transition-all border border-blue-400/30 hover:scale-[1.02] active:scale-[0.98]"
+            title="Download cleaned and preprocessed A360 taskbot JSON files"
           >
-            <Code2 className="w-4 h-4 text-violet-200 group-hover:rotate-12 transition-transform" />
-            <span>Generate Code</span>
-            <span className="px-1.5 py-0.5 rounded text-[10px] bg-white/20 text-white uppercase font-extrabold tracking-wider">
-              {workflow?.botCentricity === 'Cloud-Centric' ? 'Cloud Flow' : 'PAD & Cloud'}
-            </span>
-          </button>
+            <FileArchive className="w-4 h-4" />
+            <span>Preprocessed ZIP</span>
+          </a>
           <a
             href={api.getDownloadExcelUrl(currentJobId)}
             download="AA_to_PowerAutomate_Migration_Plan.xlsx"

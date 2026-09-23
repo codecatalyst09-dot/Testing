@@ -249,6 +249,23 @@ class PipelineOrchestrator:
             # Also generate chunks for downstream analysis
             split_json_file(processed_dir / "cleaned_workflow.json", output_dir=chunks_dir, chunk_size=25000)
 
+            # Create preprocessed zip bundle containing all cleaned taskbots and unified cleaned json
+            preprocessed_zip_path = processed_dir / "preprocessed_workflow.zip"
+            with zipfile.ZipFile(preprocessed_zip_path, "w", zipfile.ZIP_DEFLATED) as pz:
+                for cleaned_file in processed_dir.glob("*.json"):
+                    pz.write(cleaned_file, arcname=cleaned_file.name)
+                disabled_file = analysis_dir / "disabled_actions.json"
+                if disabled_file.exists():
+                    pz.write(disabled_file, arcname="disabled_actions.json")
+                readme_content = (
+                    f"# Preprocessed & Sanitized A360 Workflow: {workflow_name}\n\n"
+                    f"Contains:\n"
+                    f"- Cleaned taskbot JSON files (dead code and disabled actions pruned)\n"
+                    f"- cleaned_workflow.json (Unified multi-bot cleaned representation)\n"
+                    f"- disabled_actions.json (Audit log of all disabled actions detected)\n"
+                )
+                pz.writestr("README.txt", readme_content)
+
             # Populate outputs/ directory with the artifacts
             # 1. cleaned_workflow.json
             shutil.copy(processed_dir / "cleaned_workflow.json", outputs_dir / "cleaned_workflow.json")
@@ -272,6 +289,9 @@ class PipelineOrchestrator:
             shutil.copy(reports_dir / "migration_summary.json", outputs_dir / "migration_summary.json")
             # 11. AA_to_PowerAutomate_Migration_Plan.xlsx (Authoritative Migration Spreadsheet)
             shutil.copy(excel_report_path, outputs_dir / "AA_to_PowerAutomate_Migration_Plan.xlsx")
+            # 12. preprocessed_workflow.zip (Preprocessed downloadable ZIP)
+            if preprocessed_zip_path.exists():
+                shutil.copy(preprocessed_zip_path, outputs_dir / "preprocessed_workflow.zip")
 
             # Package all 10 outputs into A360_Migration_Analysis_<timestamp>.zip
             timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")

@@ -114,3 +114,37 @@ def download_migration_excel(job_id: str):
         filename="AA_to_PowerAutomate_Migration_Plan.xlsx",
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
+@router.get("/jobs/{job_id}/download-preprocessed")
+def download_preprocessed_zip(job_id: str):
+    """
+    Directly downloads the preprocessed & sanitized A360 taskbot JSON bundle (.zip).
+    """
+    import zipfile
+    job_dir = PipelineOrchestrator.get_job_dir(job_id)
+    processed_dir = job_dir / "processed"
+    outputs_dir = job_dir / "outputs"
+
+    preprocessed_zip = outputs_dir / "preprocessed_workflow.zip"
+    if not preprocessed_zip.exists():
+        preprocessed_zip = processed_dir / "preprocessed_workflow.zip"
+
+    if not preprocessed_zip.exists():
+        if not processed_dir.exists() or not list(processed_dir.glob("*.json")):
+            raise HTTPException(status_code=404, detail="Preprocessed files not found or preprocessing has not completed.")
+
+        preprocessed_zip = outputs_dir / "preprocessed_workflow.zip"
+        outputs_dir.mkdir(parents=True, exist_ok=True)
+        with zipfile.ZipFile(preprocessed_zip, "w", zipfile.ZIP_DEFLATED) as pz:
+            for cleaned_file in processed_dir.glob("*.json"):
+                pz.write(cleaned_file, arcname=cleaned_file.name)
+            disabled_file = job_dir / "analysis" / "disabled_actions.json"
+            if disabled_file.exists():
+                pz.write(disabled_file, arcname="disabled_actions.json")
+            pz.writestr("README.txt", f"Preprocessed A360 Workflow files for job {job_id}\nAll disabled actions and dead code pruned.\n")
+
+    return FileResponse(
+        path=preprocessed_zip,
+        filename=f"A360_Preprocessed_{job_id[:8]}.zip",
+        media_type="application/zip"
+    )

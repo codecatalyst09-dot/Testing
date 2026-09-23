@@ -142,6 +142,10 @@ export const api = {
     return `${API_BASE}/jobs/${jobId}/download-excel`;
   },
 
+  getDownloadPreprocessedUrl(jobId: string): string {
+    return `${API_BASE}/jobs/${jobId}/download-preprocessed`;
+  },
+
   getSingleOutputUrl(jobId: string, filename: string): string {
     return `${API_BASE}/jobs/${jobId}/outputs/${filename}`;
   },

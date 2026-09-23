@@ -56,6 +56,37 @@ export const Downloads: React.FC = () => {
         )}
       </div>
 
+      {/* Download Preprocessed Workflow Card */}
+      <div className="p-6 rounded-2xl bg-gradient-to-r from-slate-850 via-slate-900 to-slate-850 border border-slate-800 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-3 rounded-2xl bg-blue-500/15 text-blue-400 border border-blue-500/30">
+            <FileArchive className="w-8 h-8" />
+          </div>
+          <div>
+            <span className="text-xs font-bold text-blue-400 uppercase tracking-wider">
+              Sanitized & Preprocessed Tasks
+            </span>
+            <h2 className="text-xl font-bold text-white mt-0.5">
+              Preprocessed Workflow Package (.ZIP)
+            </h2>
+            <p className="text-xs text-slate-400 mt-1">
+              Contains all cleaned taskbot JSON files with dead code and disabled actions pruned, plus unified workflow model.
+            </p>
+          </div>
+        </div>
+
+        {currentJobId && (
+          <a
+            href={api.getDownloadPreprocessedUrl(currentJobId)}
+            download={`A360_Preprocessed_${currentJobId}.zip`}
+            className="flex items-center gap-2 px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-lg shadow-blue-500/25 transition-all"
+          >
+            <Download className="w-4 h-4" />
+            <span>Download Preprocessed ZIP</span>
+          </a>
+        )}
+      </div>
+
       {/* 10 Individual Artifacts Table */}
       <div className="p-6 rounded-2xl bg-slate-850 border border-slate-800 space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-slate-800">
