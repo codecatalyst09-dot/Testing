@@ -68,9 +68,15 @@ CLOUD_COMMANDS: Dict[str, Tuple[str, str, float]] = {
     "jira": ("Jira Connector", "Cloud issue tracking and ticket management", 0.94),
     "sftp": ("SFTP - SSH Connector", "Cloud SFTP file transfer connector", 0.93),
     "ftp": ("SFTP - SSH Connector", "Cloud SFTP file transfer connector", 0.93),
-    "ftpsftp": ("SFTP - SSH Connector", "Cloud SFTP file transfer connector", 0.93),
     "credential": ("Azure Key Vault Connector", "Retrieve credentials/secrets from Azure Key Vault", 0.94),
     "activedirectory": ("Azure AD / Microsoft Entra ID", "Cloud directory services and user management", 0.94),
+
+    # Logging & Notifications (Cloud Modernization)
+    "log": ("OneDrive / SharePoint - Append to file", "Cloud logging to SharePoint / OneDrive document library or Dataverse", 0.95),
+    "logtofile": ("OneDrive / SharePoint - Append to file", "Cloud logging to SharePoint / OneDrive document library or Dataverse", 0.95),
+    "logfile": ("OneDrive / SharePoint - Append to file", "Cloud logging to SharePoint / OneDrive document library or Dataverse", 0.95),
+    "messagebox": ("Microsoft Teams - Post message", "Cloud notification via Microsoft Teams or Email", 0.94),
+    "prompt": ("Microsoft Teams - Post adaptive card", "Cloud interactive prompt via Teams adaptive card or Approval", 0.94),
 }
 
 def match_cloud_rule(command: str, action: Optional[str] = None, attributes: Optional[Dict[str, Any]] = None) -> Optional[Tuple[str, str, float]]:

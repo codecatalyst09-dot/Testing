@@ -33,7 +33,8 @@ class CentricityAnalyzer:
         "if", "loop", "string", "number", "datetime", "delay", "errorhandler",
         "variable", "variables", "list", "dictionary", "record", "table", "file",
         "folder", "filesystem", "email", "restwebservice", "rest", "http",
-        "json", "xml", "csv", "log", "messagebox", "prompt"
+        "json", "xml", "csv", "log", "logtofile", "logfile", "write", "messagebox",
+        "prompt", "database", "sql", "excel", "excelbasic"
     }
 
     @classmethod
@@ -65,7 +66,12 @@ class CentricityAnalyzer:
         mapping_db = ExcelMappingDB.get_instance()
         for action in workflow.actions:
             task_info = task_centricities.get(action.task, {"centricity": workflow_centricity})
-            effective_centricity = task_info.get("centricity", workflow_centricity)
+            if workflow_centricity == "Cloud-Centric":
+                effective_centricity = "Cloud-Centric"
+            elif workflow_centricity == "Desktop-Centric":
+                effective_centricity = "Desktop-Centric"
+            else:
+                effective_centricity = task_info.get("centricity", workflow_centricity)
 
             cls._harmonize_single_action(action, effective_centricity, mapping_db)
 
@@ -123,7 +129,7 @@ class CentricityAnalyzer:
             centricity = "Hybrid"
             reason = "Pure orchestrator invoking child sub-bots."
         else:
-            # Only dual-compatible actions: Check if any local file/folder paths exist in attributes
+            # Only dual-compatible and logical actions: Pure cloud-eligible execution
             has_local_paths = False
             for a in dual_compatible:
                 attr_str = str(a.attributes).lower()
@@ -131,13 +137,11 @@ class CentricityAnalyzer:
                     has_local_paths = True
                     break
 
+            centricity = "Cloud-Centric"
             if has_local_paths:
-                centricity = "Desktop-Centric"
-                reason = "Interacts with local on-premises drive paths."
+                reason = "Cloud-native flow with SharePoint/OneDrive cloud modernization for local file/log paths."
             else:
-                # Defaults to Cloud-Centric for pure logic/APIs
-                centricity = "Cloud-Centric"
-                reason = "Pure logical & API processing without desktop dependencies."
+                reason = "Pure logical, API, & cloud notification processing without desktop dependencies."
 
         return {
             "centricity": centricity,
@@ -316,8 +320,12 @@ class CentricityAnalyzer:
     @classmethod
     def _is_valid_cloud_action(cls, cloud_action: str, cmd_norm: str) -> bool:
         """Determines if a candidate Cloud action is valid and executable in Power Automate Cloud."""
+        # Dual compatible packages (logic, data, email, files, logs, queues) can always run in cloud
+        if any(d in cmd_norm for d in cls.DUAL_COMPATIBLE_PACKAGES) or any(c in cmd_norm for c in cls.CLOUD_MANDATORY_PACKAGES):
+            return True
+
         if not cloud_action:
-            return any(d in cmd_norm for d in cls.DUAL_COMPATIBLE_PACKAGES) or any(c in cmd_norm for c in cls.CLOUD_MANDATORY_PACKAGES)
+            return False
 
         c_lower = cloud_action.lower()
         if "no direct" in c_lower or "no native" in c_lower or c_lower in ("none", "n/a", "not supported"):
@@ -375,6 +383,8 @@ class CentricityAnalyzer:
             return "Set variable"
         if "list" in cmd_norm:
             return "Create new list / Add item to list"
+        if "log" in cmd_norm:
+            return "Write text to file"
         if "file" in cmd_norm:
             if "copy" in op_norm:
                 return "Copy file"
@@ -397,6 +407,12 @@ class CentricityAnalyzer:
             return "Convert JSON to custom object"
         if "xml" in cmd_norm:
             return "Execute XPath expression"
+        if "messagebox" in cmd_norm:
+            return "Display message"
+        if "prompt" in cmd_norm:
+            return "Display input dialog"
+        if "workload" in cmd_norm or "queue" in cmd_norm:
+            return "Add work queue item / Process work queue items"
 
         return default_action or f"PAD Action ({cmd_norm})"
 
@@ -415,7 +431,7 @@ class CentricityAnalyzer:
             return "DateTime"
         if "delay" in cmd_norm or "error" in cmd_norm:
             return "Flow control"
-        if "file" in cmd_norm:
+        if "log" in cmd_norm or "file" in cmd_norm:
             return "File"
         if "folder" in cmd_norm:
             return "Folder"
@@ -425,6 +441,10 @@ class CentricityAnalyzer:
             return "Web services"
         if "xml" in cmd_norm:
             return "XML"
+        if "messagebox" in cmd_norm or "prompt" in cmd_norm:
+            return "Message boxes"
+        if "workload" in cmd_norm or "queue" in cmd_norm:
+            return "Work queues"
 
         return default_cat or "Custom"
 
@@ -465,8 +485,24 @@ class CentricityAnalyzer:
             return "Parse JSON"
         if "xml" in cmd_norm:
             return "xpath() expression in Compose"
+        if "log" in cmd_norm:
+            return "OneDrive / SharePoint - Append to file (or Dataverse log)"
         if "file" in cmd_norm or "folder" in cmd_norm:
             return "SharePoint / OneDrive for Business Connector"
+        if "messagebox" in cmd_norm:
+            return "Microsoft Teams - Post message in chat or channel"
+        if "prompt" in cmd_norm:
+            return "Microsoft Teams - Post adaptive card and wait for response"
+        if "workload" in cmd_norm or "queue" in cmd_norm:
+            return "Microsoft Dataverse - Add a new row (Work Queue) / SharePoint list"
+        if "excel" in cmd_norm:
+            return "Excel Online (Business) Connector"
+        if "word" in cmd_norm:
+            return "Word Online (Business) Connector"
+        if "csv" in cmd_norm:
+            return "Compose - Parse CSV / Select"
+        if "database" in cmd_norm or "sql" in cmd_norm:
+            return "SQL Server Connector (Cloud via On-Premises Data Gateway)"
 
         return default_action or f"Cloud Action ({cmd_norm})"
 

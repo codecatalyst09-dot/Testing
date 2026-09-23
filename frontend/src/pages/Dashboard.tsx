@@ -70,12 +70,20 @@ export const Dashboard: React.FC = () => {
 
   const handleOpenCodeModal = async () => {
     if (!currentJobId) return;
+    if (workflow?.botCentricity === 'Cloud-Centric') {
+      setActiveCodeTab('cloud');
+    } else {
+      setActiveCodeTab('pad');
+    }
     setShowCodeModal(true);
     if (!generatedCode) {
       setCodeLoading(true);
       try {
         const data = await api.getGeneratedCode(currentJobId);
         setGeneratedCode(data);
+        if (data?.bot_centricity === 'Cloud-Centric') {
+          setActiveCodeTab('cloud');
+        }
       } catch (err: any) {
         console.error('Failed to generate code:', err);
       } finally {
@@ -372,7 +380,7 @@ export const Dashboard: React.FC = () => {
             <Code2 className="w-4 h-4 text-violet-200 group-hover:rotate-12 transition-transform" />
             <span>Generate Code</span>
             <span className="px-1.5 py-0.5 rounded text-[10px] bg-white/20 text-white uppercase font-extrabold tracking-wider">
-              PAD & Cloud
+              {workflow?.botCentricity === 'Cloud-Centric' ? 'Cloud Flow' : 'PAD & Cloud'}
             </span>
           </button>
           <a
@@ -565,22 +573,6 @@ export const Dashboard: React.FC = () => {
             </div>
           )}
 
-          {/* Action Bar: Direct Generate Code Trigger */}
-          <div className="pt-3 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-xs text-slate-300">
-              <Sparkles className="w-4 h-4 text-violet-400 shrink-0" />
-              <span>
-                Ready to port this architecture into native Power Automate Desktop scripts and Cloud Flows?
-              </span>
-            </div>
-            <button
-              onClick={handleOpenCodeModal}
-              className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 via-indigo-600 to-primary-600 hover:from-violet-500 hover:via-indigo-500 hover:to-primary-500 text-white font-bold text-xs shadow-md shadow-indigo-600/25 transition-all hover:scale-[1.02] active:scale-[0.98] shrink-0"
-            >
-              <Code2 className="w-4 h-4 text-violet-200" />
-              <span>Generate Power Automate Code</span>
-            </button>
-          </div>
         </div>
       )}
 

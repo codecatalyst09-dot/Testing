@@ -149,6 +149,8 @@ export const api = {
   async getGeneratedCode(jobId: string): Promise<{
     workflow_name: string;
     total_actions: number;
+    bot_centricity?: string;
+    bot_centricity_reason?: string;
     pad_script: string;
     cloud_flow_json: any;
     powershell_script: string;

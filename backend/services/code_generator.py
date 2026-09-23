@@ -210,7 +210,7 @@ class CodeGenerator:
         # Cloud actions extraction
         cloud_actions = [a for a in workflow.actions if a.cloudOrDesktop == "Power Automate Cloud"]
 
-        for idx, a in enumerate(cloud_actions[:25]):
+        for idx, a in enumerate(cloud_actions[:50]):
             action_key = f"Step_{a.step}_{re.sub(r'[^a-zA-Z0-9_]', '_', a.command)}"
             cmd_lower = a.command.lower()
             op_lower = (a.operation or "").lower()
@@ -312,6 +312,27 @@ class CodeGenerator:
                     "inputs": {
                         "name": "ProcessState",
                         "value": "Active"
+                    },
+                    "runAfter": run_after
+                }
+            elif "log" in cmd_lower:
+                actions_dict[action_key] = {
+                    "type": "Compose",
+                    "inputs": f"@concat('Log: ', utcNow(), ' - Step {a.step} ({a.command}) completed successfully')",
+                    "runAfter": run_after
+                }
+            elif "file" in cmd_lower or "folder" in cmd_lower:
+                actions_dict[action_key] = {
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                        "host": {
+                            "connectionName": "shared_onedriveforbusiness",
+                            "operationId": "GetFileContent",
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_onedriveforbusiness"
+                        },
+                        "parameters": {
+                            "id": f"/Documents/{workflow.workflow.name}/Data"
+                        }
                     },
                     "runAfter": run_after
                 }

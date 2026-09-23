@@ -124,7 +124,11 @@ class ExcelMappingDB:
             # Cryptography
             {"aa_package": "Cryptography", "aa_action": "encrypt", "aa_description": "Encrypt text with AES or RSA", "pad_category": "Cryptography", "pad_action": "Encrypt text with AES", "cloud_action": "Azure Key Vault / Azure Function", "migration_notes": "Desktop AES encryption action in PAD."},
             {"aa_package": "Cryptography", "aa_action": "decrypt", "aa_description": "Decrypt text with AES or RSA", "pad_category": "Cryptography", "pad_action": "Decrypt text with AES", "cloud_action": "Azure Key Vault / Azure Function", "migration_notes": "Desktop AES decryption action in PAD."},
-            {"aa_package": "Cryptography", "aa_action": "hash", "aa_description": "Generate hash value (SHA-256)", "pad_category": "Cryptography", "pad_action": "Hash text", "cloud_action": "Compose expression (base64) or Azure Function", "migration_notes": "Cryptographic hash generation."},
+            # Log to File / Logging
+            {"aa_package": "Log to file", "aa_action": "log", "aa_description": "Append text entry to log file", "pad_category": "File", "pad_action": "Write text to file", "cloud_action": "OneDrive / SharePoint: Append to file (or Dataverse log / Azure Application Insights)", "migration_notes": "Cloud-native logging maps to SharePoint/OneDrive append or Dataverse log row."},
+            {"aa_package": "Log to file", "aa_action": "write", "aa_description": "Write text entry to log file", "pad_category": "File", "pad_action": "Write text to file", "cloud_action": "OneDrive / SharePoint: Append to file (or Dataverse log / Azure Application Insights)", "migration_notes": "Cloud-native logging maps to SharePoint/OneDrive append or Dataverse log row."},
+            {"aa_package": "Log", "aa_action": "log", "aa_description": "Append text entry to log file", "pad_category": "File", "pad_action": "Write text to file", "cloud_action": "OneDrive / SharePoint: Append to file (or Dataverse log / Azure Application Insights)", "migration_notes": "Cloud-native logging maps to SharePoint/OneDrive append or Dataverse log row."},
+            {"aa_package": "Log to file", "aa_action": "", "aa_description": "Append text entry to log file", "pad_category": "File", "pad_action": "Write text to file", "cloud_action": "OneDrive / SharePoint: Append to file (or Dataverse log / Azure Application Insights)", "migration_notes": "Cloud-native logging maps to SharePoint/OneDrive append or Dataverse log row."},
         ]
 
         for item in supplementary:
@@ -240,6 +244,9 @@ class ExcelMappingDB:
             "crypto": "Cryptography",
             "service": "Service",
             "printer": "Printer",
+            "log": "Log to file",
+            "logtofile": "Log to file",
+            "logfile": "Log to file",
         }
 
         matched_pkg = alias_map.get(cmd_lower.replace(" ", "").replace("_", ""), cmd_clean)
@@ -261,9 +268,9 @@ class ExcelMappingDB:
             if item["aa_package"].lower() == pkg_lower:
                 return self._format_result(item, cmd_clean, op_clean)
 
-        # 4. Keyword search across actions in database
+        # 4. Keyword search across packages in database
         for item in self._mappings:
-            if cmd_lower in item["aa_package"].lower() or (op_lower and op_lower in item["aa_action"].lower()):
+            if cmd_lower and cmd_lower in item["aa_package"].lower():
                 return self._format_result(item, cmd_clean, op_clean)
 
         # 5. Unknown command policy -> Manual Review
